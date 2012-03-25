@@ -14,11 +14,6 @@
 ;;
 ;; The license text: <http://www.gnu.org/licenses/gpl-3.0.html>
 
-;; TODO
-;;
-;; Define SETF expansion for disabled accessors. They give error message
-;; when used as functions but error is not very nice with SETF.
-
 (cl:defpackage #:sandbox-pkg)
 (cl:in-package #:sandbox-pkg)
 
