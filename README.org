@@ -4,12 +4,12 @@
 
 ** Introduction
 
-//Eval-bot// is an Internet Relay Chat robot program (a bot) which aims
-to help discussions related to the Common Lisp language. The bot sits on
-an IRC channel and can act on specific command messages. Command
-messages can evaluate Common Lisp expressions and send their return
-value to IRC channel or user. Command messages can also request for
-information, such as URLs to the [[http://www.lispworks.com/documentation/HyperSpec/Front/][Common Lisp HyperSpec]].
+/Eval-bot/ is an Internet Relay Chat robot program (a bot) which aims to
+help discussions related to the Common Lisp language. The bot sits on an
+IRC channel and can act on specific command messages. Command messages
+can evaluate Common Lisp expressions and send their return value to IRC
+channel or user. Command messages can also request for information, such
+as URLs to the [[http://www.lispworks.com/documentation/HyperSpec/Front/][Common Lisp HyperSpec]].
 
 The bot program is implemented in the Common Lisp language. It must be
 used with an implementation that supports threads through [[http://common-lisp.net/project/bordeaux-threads/][Bordeaux
