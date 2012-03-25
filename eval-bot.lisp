@@ -498,7 +498,7 @@
                                 :real-msg (real-msg message))))))
 
 (defvar *send-queue-interval* .5)
-(defvar *input-queue-interval* .2)
+(defvar *input-queue-interval* .1)
 
 (defun start-queue-handlers (client)
   (with-slots (input-queue-thread send-queue-thread) client
