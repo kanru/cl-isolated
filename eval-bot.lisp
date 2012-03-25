@@ -407,10 +407,13 @@
 
 (defvar *command-help-strings*
   '(",expression ...           Eval expression(s) in your package."
-    "!help                     This help message."
     "!clhs <term>              Show CLHS URL for <term>."
+    "!help                     This help message."
+    "!source                   Show the URL for bot's source code."
     "!tell <target> <command>  Send <command>'s output to <target>."
     ))
+
+(defvar *source-code-url* "https://github.com/tlikonen/cl-eval-bot")
 
 (defmethod handle-input-message ((client client) (message server-privmsg-cmd))
   (let ((target (first (arguments message)))
@@ -426,6 +429,16 @@
              :do
              (send :terminal msg)
              (queue-add (send-queue client) msg)))
+
+      ((string-equal "source" (nth-word 0 line))
+       (let ((msg (make-instance 'client-privmsg
+                                 :target target
+                                 :contents (outmsg "Bot's source code: ~A"
+                                                   *source-code-url*))))
+         (when (real-msg message)
+           (send :terminal message))
+         (send :terminal msg)
+         (queue-add (send-queue client) msg)))
 
       ((and (string-equal "clhs" (nth-word 0 line))
             (nth-word 1 line))
