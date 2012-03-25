@@ -87,7 +87,7 @@
 
 (disabled-features
   compile eval-when load-time-value compiler-macro-function
-  define-compiler-macro defmacro macro-function macroexpand
+  define-compiler-macro macro-function macroexpand
   macroexpand-1 define-symbol-macro symbol-macrolet proclaim declaim
   the)
 
