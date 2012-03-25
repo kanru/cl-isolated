@@ -221,9 +221,6 @@
 
 (defgeneric send (context message))
 
-(defmethod send :around (client (message message))
-  (call-next-method))
-
 (defmethod send ((client client) (message client-privmsg))
   (trivial-irc:send-privmsg client (target message)
                             (truncate-message (contents message))))
