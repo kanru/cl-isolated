@@ -181,8 +181,11 @@
 (defun connectedp (client)
   (ignore-errors (trivial-irc:connected-p client)))
 
-(defun make-client (&rest initargs)
-  (apply #'make-instance 'client initargs))
+(defun make-client (&key server (port 6667) password
+                      nickname username realname)
+  (make-instance 'client
+                 :server server :port port :password password
+                 :nickname nickname :username username :realname realname))
 
 ;;; Messages
 
