@@ -203,8 +203,7 @@
    (arguments :reader arguments :initarg :arguments)))
 
 (defclass server-privmsg (server-message)
-  ((real-msg :reader real-msg :initarg :real-msg :initform t)
-   (tell-enabled :reader tell-enabled :initarg :tell-enabled :initform t)))
+  ((tell-intro :reader tell-intro :initarg :tell-intro :initform nil)))
 (defclass server-privmsg-eval (server-privmsg) nil)
 (defclass server-privmsg-cmd (server-privmsg) nil)
 
@@ -362,6 +361,13 @@
     (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
       (sandbox-impl:reset))))
 
+(defun send-message-or-tell-intro (client message)
+  (let ((intro (tell-intro message)))
+    (if intro
+        (progn (send :terminal intro)
+               (queue-add (send-queue client) intro))
+        (send :terminal message))))
+
 (defgeneric handle-input-message (client message))
 
 (defmethod handle-input-message ((client client) (message server-privmsg-eval))
@@ -370,8 +376,7 @@
                           (length *eval-prefix*)))
         (sandbox-name (user-to-sandbox-name (prefix message))))
 
-    (when (real-msg message)
-      (send :terminal message))
+    (send-message-or-tell-intro client message)
 
     (with-thread (*thread-name-eval* :timeout *eval-timeout*)
       (let ((string (clean-string (with-output-to-string (stream)
@@ -380,14 +385,14 @@
         (when (plusp (length string))
           (let ((msg (make-instance 'client-privmsg :target target
                                     :contents string)))
-            (queue-add (send-queue client) msg)
-            (send :terminal msg))))
+            (send :terminal msg)
+            (queue-add (send-queue client) msg))))
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
                                 :contents (outmsg "EVAL-TIMEOUT"))))
-        (queue-add (send-queue client) msg)
-        (send :terminal msg)))))
+        (send :terminal msg)
+        (queue-add (send-queue client) msg)))))
 
 (defun nth-word (n string)
   (let ((words (split-sequence:split-sequence
@@ -423,82 +428,78 @@
     (cond
 
       ((string-equal "help" (nth-word 0 line))
+       (send-message-or-tell-intro client message)
+       (send :terminal (format nil "[Sending help strings to ~A.]" target))
        (loop :for line :in *command-help-strings*
              :for msg := (make-instance 'client-privmsg
                                         :target target
                                         :contents (outmsg line))
-             :do
-             (send :terminal msg)
-             (queue-add (send-queue client) msg)))
+             :do (queue-add (send-queue client) msg)))
 
       ((string-equal "source" (nth-word 0 line))
-       (let ((msg (make-instance 'client-privmsg
+       (send-message-or-tell-intro client message)
+       (let ((new (make-instance 'client-privmsg
                                  :target target
                                  :contents (outmsg "Bot's source code: ~A"
                                                    *source-code-url*))))
-         (when (real-msg message)
-           (send :terminal message))
-         (send :terminal msg)
-         (queue-add (send-queue client) msg)))
+         (send :terminal new)
+         (queue-add (send-queue client) new)))
 
       ((and (string-equal "clhs" (nth-word 0 line))
             (nth-word 1 line))
+       (send-message-or-tell-intro client message)
        (let* ((spec (nth-word 1 line))
               (contents (let ((url (clhs-url:clhs spec)))
                           (if url
                               (outmsg "~A (~A)" url (string-upcase spec))
                               (outmsg "No CLHS match for ~A." spec)))))
-         (when (real-msg message)
-           (send :terminal message))
          (let ((new (make-instance 'client-privmsg :target target
                                    :contents contents)))
            (send :terminal new)
            (queue-add (send-queue client) new))))
 
       ((and (string-equal "tell" (nth-word 0 line))
-            (tell-enabled message))
+            (not (tell-intro message)))
        (let ((word1 (nth-word 1 line))
              (word2 (nth-word 2 line))
              (rest (nth-value 1 (nth-word 1 line))))
          (when (and word1 word2
                     (or (match-prefix-p *command-prefix* word2)
                         (match-prefix-p *eval-prefix* word2)))
-           (let ((new (make-instance
-                       'client-privmsg :target word1
-                       :contents
-                       (outmsg "User ~A tells: ~A"
-                               (trivial-irc:prefix-nickname (prefix message))
-                               rest))))
-             (when (real-msg message)
-               (send :terminal message))
-             (send :terminal new)
-             (queue-add (send-queue client) new))
+           (send :terminal message)
            (handle-input-message
-            client (make-instance 'server-privmsg
-                                  :command (command message)
-                                  :prefix (prefix message)
-                                  :arguments (list word1 rest)
-                                  :tell-enabled nil
-                                  :real-msg nil))))))))
+            client (make-instance
+                    'server-privmsg
+                    :command (command message)
+                    :prefix (prefix message)
+                    :arguments (list word1 rest)
+                    :tell-intro (make-instance
+                                 'client-privmsg
+                                 :target word1
+                                 :contents (outmsg "User ~A tells: ~A"
+                                                   (trivial-irc:prefix-nickname
+                                                    (prefix message))
+                                                   rest))))))))))
 
 (defvar *max-input-queue-length* 10)
 
 (defmethod handle-input-message ((client client) (message server-privmsg))
-  (let ((contents (second (arguments message)))
-        type)
-    (cond ((match-prefix-p *eval-prefix* contents)
-           (setf type 'server-privmsg-eval))
-          ((match-prefix-p *command-prefix* contents)
-           (setf type 'server-privmsg-cmd)))
+  (let* ((contents (second (arguments message)))
+         (type (cond ((match-prefix-p *eval-prefix* contents)
+                      'server-privmsg-eval)
+                     ((match-prefix-p *command-prefix* contents)
+                      'server-privmsg-cmd))))
 
-    (when (and type (< (queue-length (input-queue client))
-                       *max-input-queue-length*))
-      (queue-add (input-queue client)
-                 (make-instance type :command (command message)
+    (when type
+      (let ((new (make-instance type :command (command message)
                                 :prefix (prefix message)
                                 :arguments (arguments message)
-                                :tell-enabled (tell-enabled message)
-                                :real-msg (real-msg message))))))
+                                :tell-intro (tell-intro message))))
+        (cond ((tell-intro new)
+               (queue-add (input-queue client) new))
+              ((< (queue-length (input-queue client))
+                  *max-input-queue-length*)
+               (queue-add (input-queue client) new)))))))
 
 (defvar *send-queue-interval* .5)
 (defvar *input-queue-interval* .1)
