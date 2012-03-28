@@ -104,7 +104,8 @@
                                                    (array-element-type form))))
                               (dotimes (i (array-total-size arr) arr)
                                 (setf (row-major-aref arr i)
-                                      (translate (row-major-aref form i)))))))
+                                      (translate-form
+                                       (row-major-aref form i)))))))
                  (keyword form)
                  (symbol (if (member form *allowed-extra-symbols*)
                              form
