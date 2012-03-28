@@ -258,7 +258,7 @@
 (defmethod send ((target (eql :terminal)) message)
   (send *local-stream* message))
 
-(defun outmsg (format-string &rest args)
+(defun irc-fmt (format-string &rest args)
   (apply #'format nil (concatenate 'string ";; " format-string) args))
 
 ;;; IRC
@@ -390,7 +390,7 @@
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
-                                :contents (outmsg "EVAL-TIMEOUT"))))
+                                :contents (irc-fmt "EVAL-TIMEOUT"))))
         (send :terminal msg)
         (queue-add (send-queue client) msg)))))
 
@@ -433,15 +433,15 @@
        (loop :for line :in *command-help-strings*
              :for msg := (make-instance 'client-privmsg
                                         :target target
-                                        :contents (outmsg line))
+                                        :contents (irc-fmt line))
              :do (queue-add (send-queue client) msg)))
 
       ((string-equal "source" (nth-word 0 line))
        (send-message-or-tell-intro client message)
        (let ((new (make-instance 'client-privmsg
                                  :target target
-                                 :contents (outmsg "Bot's source code: ~A"
-                                                   *source-code-url*))))
+                                 :contents (irc-fmt "Bot's source code: ~A"
+                                                    *source-code-url*))))
          (send :terminal new)
          (queue-add (send-queue client) new)))
 
@@ -451,8 +451,8 @@
        (let* ((spec (nth-word 1 line))
               (contents (let ((url (clhs-url:clhs spec)))
                           (if url
-                              (outmsg "~A (~A)" url (string-upcase spec))
-                              (outmsg "No CLHS match for ~A." spec)))))
+                              (irc-fmt "~A (~A)" url (string-upcase spec))
+                              (irc-fmt "No CLHS match for ~A." spec)))))
          (let ((new (make-instance 'client-privmsg :target target
                                    :contents contents)))
            (send :terminal new)
@@ -476,10 +476,10 @@
                     :tell-intro (make-instance
                                  'client-privmsg
                                  :target word1
-                                 :contents (outmsg "User ~A tells: ~A"
-                                                   (trivial-irc:prefix-nickname
-                                                    (prefix message))
-                                                   rest))))))))))
+                                 :contents (irc-fmt "User ~A tells: ~A"
+                                                    (trivial-irc:prefix-nickname
+                                                     (prefix message))
+                                                    rest))))))))))
 
 (defvar *max-input-queue-length* 10)
 
