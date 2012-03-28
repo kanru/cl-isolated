@@ -182,10 +182,10 @@
   (ignore-errors (trivial-irc:connected-p client)))
 
 (defun make-client (&key server (port 6667) password
-                      nickname username realname)
-  (make-instance 'client
-                 :server server :port port :password password
-                 :nickname nickname :username username :realname realname))
+                      nickname username realname listen-targets auto-join)
+  (make-instance 'client :server server :port port :password password
+                 :nickname nickname :username username :realname realname
+                 :listen-targets listen-targets :auto-join auto-join))
 
 ;;; Messages
 
