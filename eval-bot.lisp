@@ -258,8 +258,12 @@
 (defmethod send ((target (eql :terminal)) message)
   (send *local-stream* message))
 
+(defvar *irc-message-prefix* "")
+
 (defun irc-fmt (format-string &rest args)
-  (apply #'format nil (concatenate 'string ";; " format-string) args))
+  (apply #'format nil (concatenate 'string *irc-message-prefix*
+                                   format-string)
+         args))
 
 ;;; IRC
 
