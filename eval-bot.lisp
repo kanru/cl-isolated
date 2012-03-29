@@ -216,6 +216,8 @@
 (defclass client-action (client-privmsg) nil)
 
 (defun truncate-message (string)
+  ;; FIXME: This counts CL character objects but IRC protocol is about
+  ;; bytes.
   (if (> (length string) *irc-message-max-length*)
       (concatenate 'string (subseq string 0 (- *irc-message-max-length* 3))
                    "...")
