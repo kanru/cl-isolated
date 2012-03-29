@@ -96,6 +96,15 @@
                (delete-package package-name)))
            *sandbox-usage*))
 
+(defun list-user-sandbox-packages ()
+  (remove-if-not (lambda (item)
+                   (string= *sandbox-package-prefix*
+                            (subseq item 0
+                                    (min (length item)
+                                         (length *sandbox-package-prefix*)))))
+                 (list-all-packages)
+                 :key #'package-name))
+
 (defconstant +action-char+ (code-char 1))
 
 (defun action-to-string (action-string)
@@ -347,7 +356,7 @@
                                           (member char '(#\Newline #\Tab)))
                                 string)))
 
-(defvar *sandbox-package-prefix* "SANDBOX")
+(defvar *sandbox-package-prefix* "SANDBOX/")
 
 (defun user-to-sandbox-name (user)
   (let ((excl (position #\! user)))
