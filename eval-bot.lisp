@@ -419,11 +419,11 @@
   (string= prefix string :end2 (min (length prefix) (length string))))
 
 (defvar *command-help-strings*
-  '(",expression ...           Eval expression(s) in your package."
-    "!clhs <term>              Show CLHS URL for <term>."
-    "!help                     This help message."
-    "!source                   Show the URL to bot's source code."
-    "!tell <target> <command>  Send <command>'s output to <target>."))
+  '(" ,expression ...           Eval expression(s) in your package."
+    " !clhs <term>              Show CLHS URL for <term>."
+    " !help                     This help message."
+    " !source                   Show the URL to bot's source code."
+    " !tell <target> <command>  Send <command>'s output to <target>."))
 
 (defvar *source-code-url* "https://github.com/tlikonen/cl-eval-bot")
 
