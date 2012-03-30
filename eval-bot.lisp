@@ -407,7 +407,7 @@
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
-                                :contents (irc-fmt "EVAL-TIMEOUT"))))
+                                :contents (irc-fmt ";; EVAL-TIMEOUT"))))
         (send :terminal msg)
         (queue-add (send-queue client) msg)))))
 
