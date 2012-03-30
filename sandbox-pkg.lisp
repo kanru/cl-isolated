@@ -82,14 +82,13 @@
 ;;; The Evaluation and Compilation Dictionary
 
 (import-export-symbols
-  cl:lambda cl:quote cl:declare cl:ignore cl:ignorable cl:type cl:special
-  cl:locally cl:special-operator-p cl:constantp)
+  cl:lambda cl:quote cl:special-operator-p cl:constantp)
 
 (disabled-features
   compile eval-when load-time-value compiler-macro-function
   define-compiler-macro macro-function macroexpand
   macroexpand-1 define-symbol-macro symbol-macrolet proclaim declaim
-  the)
+  the declare locally)
 
 (sdefun eval (form)
   (cl:values-list (sandbox-impl:translate-form
