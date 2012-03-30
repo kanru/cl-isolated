@@ -38,7 +38,7 @@
                :listen-targets nil
                :auto-join nil))
 
-(handler-case (swank:create-server :port 50000 :dont-close t)
-  (sb-bsd-sockets:address-in-use-error ()
-    (format t "~&Swank port already in use. Exiting.~%")
-    (sb-ext:quit :unix-status 1)))
+(loop :for port :from 50000 :upto 50050
+      :do (handler-case
+              (return (swank:create-server :port port :dont-close t))
+            (sb-bsd-sockets:address-in-use-error () nil)))
