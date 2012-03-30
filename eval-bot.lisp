@@ -96,6 +96,8 @@
                (delete-package package-name)))
            *sandbox-usage*))
 
+(defvar *sandbox-package-prefix* "SANDBOX/")
+
 (defun list-user-sandbox-packages ()
   (remove-if-not (lambda (item)
                    (string= *sandbox-package-prefix*
