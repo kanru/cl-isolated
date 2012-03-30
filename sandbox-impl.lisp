@@ -24,6 +24,8 @@
 
 (in-package #:sandbox-impl)
 
+(declaim (optimize (safety 3)))
+
 (defvar *sandbox* "SANDBOX")
 (defvar *msg-value-prefix* "=> ")
 (defvar *msg-error-prefix* ";; ")

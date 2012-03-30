@@ -19,6 +19,8 @@
 (cl:defpackage #:sandbox-pkg)
 (cl:in-package #:sandbox-pkg)
 
+(cl:declaim (cl:optimize (cl:safety 3)))
+
 ;;; Helpers for defining, importing and exporting
 
 (cl:defmacro import-export-symbols (cl:&body symbols)

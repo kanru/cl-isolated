@@ -21,6 +21,8 @@
 
 (in-package #:eval-bot)
 
+(declaim (optimize (safety 3)))
+
 (defclass eval-bot () nil)
 
 ;;; Threads
