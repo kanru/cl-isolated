@@ -123,7 +123,7 @@
   cl:lambda-list-keywords cl:lambda-parameters-limit cl:defparameter cl:defvar
   cl:destructuring-bind cl:let cl:let* cl:progv cl:setq cl:psetq cl:block
   cl:catch cl:go cl:return-from cl:return cl:tagbody cl:throw
-  cl:unwind-protect cl:nil cl:not cl:t cl:eq cl:eql cl:equal cl:equalp
+  cl:nil cl:not cl:t cl:eq cl:eql cl:equal cl:equalp
   cl:identity cl:complement cl:constantly cl:every cl:some cl:notevery
   cl:notany cl:and cl:cond cl:if cl:or cl:when cl:unless cl:case cl:ccase
   cl:ecase cl:typecase cl:ctypecase cl:etypecase cl:multiple-value-bind
@@ -134,7 +134,7 @@
 (disabled-features
   fdefinition fmakunbound function-lambda-expression
   defconstant define-modify-macro defsetf define-setf-expander
-  get-setf-expansion)
+  get-setf-expansion unwind-protect)
 
 (sdefmacro defun (name lambda-list cl:&body body)
   (cl:if (cl:or (cl:and (cl:symbolp name)
