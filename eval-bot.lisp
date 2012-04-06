@@ -331,6 +331,10 @@
             (bt:with-lock-held ((lock *definitions*))
               (loop :for expr := (read file nil)
                     :while expr
+                    :if (and (consp expr)
+                             (stringp (first expr))
+                             (consp (rest expr))
+                             (every #'stringp (rest expr)))
                     :do (setf (gethash (first expr) (hash *definitions*))
                               (rest expr))))
             (send :terminal "Definitions loaded."))
