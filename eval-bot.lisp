@@ -125,10 +125,13 @@
   (when (and (bt:threadp *maintainer-thread*)
              (bt:thread-alive-p *maintainer-thread*))
     (bt:destroy-thread *maintainer-thread*))
-  (setf *maintainer-thread* (with-thread ("eval-bot maintainer")
-                              (loop (sleep *maintainer-interval*)
-                                    (ignore-errors
-                                      (delete-unused-packages))))))
+  (setf *maintainer-thread*
+        (with-thread ("eval-bot maintainer")
+          (loop (sleep *maintainer-interval*)
+                (ignore-errors
+                  (delete-unused-packages))
+                (when (changed *dictionary*)
+                  (dictionary-save))))))
 
 ;;; Queues
 
