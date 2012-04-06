@@ -523,11 +523,21 @@
   (string= prefix string :end2 (min (length prefix) (length string))))
 
 (defvar *command-help-strings*
-  '(" ,expression ...           Eval expression(s) in your package."
-    " !clhs <term>              Show CLHS URL for <term>."
-    " !help                     This help message."
-    " !source                   Show the URL to bot's source code."
-    " !tell <target> <command>  Send <command>'s output to <target>."))
+  (let ((fmt
+         '(";; ~Aexpression ...           Eval expression(s) in your package."
+           ";; ~Aclhs <term>              Show CLHS URL for <term>."
+           ";; ~Ahelp                     This help message."
+           ";; ~Asource                   Show the URL to bot's source code."
+           ";; ~Adef <word>               Show definitions for <word>."
+           ";; ~Adef+[n] <word> <def>     Add definition <def> for <word> ~
+                                                (before [n])."
+           ";; ~Adef-[n] <word>           Delete definition [n] from <word>."
+           ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
+        strings)
+    (push (irc-fmt (first fmt) *eval-prefix*) strings)
+    (loop :for line :in (rest fmt)
+          :do (push (irc-fmt line *command-prefix*) strings))
+    (nreverse strings)))
 
 (defun cmd-help (client target)
   (send :terminal (format nil "[Sending help strings to ~A.]" target))
