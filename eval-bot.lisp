@@ -64,6 +64,8 @@
 (defun enable () (setf *enabled* t))
 (defun disable () (setf *enabled* nil))
 
+;;; Maintenance
+
 (defclass sandbox-package (eval-bot)
   ((lock :reader lock :initform (bt:make-lock "sandbox-package"))
    (last-use :accessor last-use)))
