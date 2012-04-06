@@ -118,17 +118,17 @@
     (format nil "~D~2,'0D~2,'0DT~2,'0D~2,'0D~2,'0DZ"
             year month date hour min sec)))
 
-(defvar *cleaner-thread* nil)
-(defvar *cleaner-interval* 60)
+(defvar *maintainer-thread* nil)
+(defvar *maintainer-interval* 60)
 
-(defun start-cleaner ()
-  (when (and (bt:threadp *cleaner-thread*)
-             (bt:thread-alive-p *cleaner-thread*))
-    (bt:destroy-thread *cleaner-thread*))
-  (setf *cleaner-thread* (with-thread ("eval-bot cleaner")
-                           (loop (sleep *cleaner-interval*)
-                                 (ignore-errors
-                                   (delete-unused-packages))))))
+(defun start-maintainer ()
+  (when (and (bt:threadp *maintainer-thread*)
+             (bt:thread-alive-p *maintainer-thread*))
+    (bt:destroy-thread *maintainer-thread*))
+  (setf *maintainer-thread* (with-thread ("eval-bot maintainer")
+                              (loop (sleep *maintainer-interval*)
+                                    (ignore-errors
+                                      (delete-unused-packages))))))
 
 ;;; Queues
 
@@ -752,7 +752,7 @@
 
 (defun connection-established (client)
   (sleep 3)
-  (start-cleaner)
+  (start-maintainer)
   (start-queue-handlers client)
   (ignore-errors
     (loop :for (ch . key) :in (auto-join client)
