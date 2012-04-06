@@ -259,18 +259,6 @@
 (disabled-features
   arithmetic-error-operands arithmetic-error-operation)
 
-(sdefun - (cl:&rest args)
-  (cl:apply #'cl:- args))
-
-(sdefun + (cl:&rest args)
-  (cl:apply #'cl:+ args))
-
-(sdefun * (cl:&rest args)
-  (cl:apply #'cl:* args))
-
-(sdefun / (cl:&rest args)
-  (cl:apply #'cl:/ args))
-
 ;;; The Characters Dictionary
 
 (import-export-symbols
@@ -435,17 +423,6 @@
   cl:decode-universal-time cl:encode-universal-time cl:get-universal-time
   cl:get-decoded-time cl:sleep cl:lisp-implementation-type
   cl:lisp-implementation-version)
-
-(sdefparameter - cl:nil)
-(sdefparameter * cl:nil)
-(sdefparameter ** cl:nil)
-(sdefparameter *** cl:nil)
-(sdefparameter / cl:nil)
-(sdefparameter // cl:nil)
-(sdefparameter /// cl:nil)
-(sdefparameter + cl:nil)
-(sdefparameter ++ cl:nil)
-(sdefparameter +++ cl:nil)
 
 (disabled-features
   apropos apropos-list describe describe-object trace untrace
