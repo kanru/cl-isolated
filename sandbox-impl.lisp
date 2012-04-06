@@ -61,7 +61,7 @@
 (defmacro with-sandbox-env (&body body)
   (with-gensyms (input output two-way)
     `(with-open-stream (,input (make-string-input-stream
-                                "You found the standard input stream!"))
+                                "This is the standard input stream!"))
        (with-open-stream (,output (make-broadcast-stream))
          (with-open-stream (,two-way (make-two-way-stream ,input ,output))
            (with-standard-io-syntax
