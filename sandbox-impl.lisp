@@ -26,7 +26,7 @@
 
 (declaim (optimize (safety 3)))
 
-(defvar *sandbox* "SANDBOX")
+(defvar *sandbox* "SANDBOX/LOCAL")
 (defvar *msg-value-prefix* "=> ")
 (defvar *msg-error-prefix* ";; ")
 (defvar *max-elements* 500)
