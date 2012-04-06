@@ -369,16 +369,17 @@
                                 (subseq user (or excl 0))))))
 
 (defun sandbox-repl (sandbox-name string &optional (stream *standard-output*))
-  (let ((sandbox-impl:*sandbox* sandbox-name))
-    (update-sandbox-usage sandbox-name)
-    (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
+  (update-sandbox-usage sandbox-name)
+  (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
+    (let ((sandbox-impl:*sandbox* sandbox-name))
       (sandbox-impl:repl string stream))))
 
-(defun sandbox-reset (sandbox-name)
-  (let ((sandbox-impl:*sandbox* sandbox-name))
-    (update-sandbox-usage sandbox-name)
+(defun sandbox-init (sandbox-name)
+  (update-sandbox-usage sandbox-name)
+  (unless (find-package sandbox-name)
     (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
-      (sandbox-impl:reset))))
+      (let ((sandbox-impl:*sandbox* sandbox-name))
+        (sandbox-impl:reset)))))
 
 (defun send-message-or-tell-intro (client message)
   (let ((intro (tell-intro message)))
@@ -396,6 +397,7 @@
         (sandbox-name (user-to-sandbox-name (prefix message))))
 
     (send-message-or-tell-intro client message)
+    (sandbox-init sandbox-name)
 
     (with-thread (*thread-name-eval* :timeout *eval-timeout*)
       (let ((string (clean-string (with-output-to-string (stream)
