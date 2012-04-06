@@ -417,10 +417,17 @@
         (with-thread (*thread-name-server-message*)
           (block nil
             (handler-bind
+
                 ((trivial-irc:connection-lost
                   (lambda (c)
                     (send :terminal (format nil "~A" (type-of c)))
+                    (ignore-errors (irc-quit client))
+                    (with-thread ("eval-bot reconnect")
+                      #+sbcl (declare (sb-ext:muffle-conditions style-warning))
+                      (sleep 5)
+                      (irc-connect client))
                     (return)))
+
                  (t (lambda (c)
                       (send :terminal (format nil "~A: ~A" (type-of c) c))
                       (sleep 2)
@@ -443,7 +450,15 @@
   (setf (nick-uniq-count client) 1)
   (queue-clear (input-queue client))
   (queue-clear (send-queue client))
-  (trivial-irc:connect client)
+
+  (handler-case (trivial-irc:connect client)
+    (trivial-irc:connection-failed ()
+      (send :terminal "Connection failed.")
+      (ignore-errors (irc-quit client))
+      (with-thread ("eval-bot reconnect")
+        (sleep 5)
+        (irc-connect client))
+      (return-from irc-connect)))
 
   (when (connectedp client)
     (start-server-message-handler client)
