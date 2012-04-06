@@ -440,7 +440,57 @@
     " !source                   Show the URL to bot's source code."
     " !tell <target> <command>  Send <command>'s output to <target>."))
 
+(defun cmd-help (client target)
+  (send :terminal (format nil "[Sending help strings to ~A.]" target))
+  (loop :for line :in *command-help-strings*
+        :for msg := (make-instance 'client-privmsg
+                                   :target target
+                                   :contents (irc-fmt line))
+        :do (queue-add (send-queue client) msg)))
+
 (defvar *source-code-url* "https://github.com/tlikonen/cl-eval-bot")
+
+(defun cmd-source (client target)
+  (let* ((new (make-instance 'client-privmsg
+                             :target target
+                             :contents (irc-fmt "Bot's source code: ~A"
+                                                *source-code-url*))))
+    (send :terminal new)
+    (queue-add (send-queue client) new)))
+
+
+(defun cmd-clhs (client target line)
+  (let* ((spec (nth-word 1 line))
+         (contents (let ((url (clhs-url:clhs spec)))
+                     (if url
+                         (irc-fmt "~A (~A)" url (string-upcase spec))
+                         (irc-fmt "No CLHS match for ~A." spec))))
+         (new (make-instance 'client-privmsg :target target
+                             :contents contents)))
+    (send :terminal new)
+    (queue-add (send-queue client) new)))
+
+(defun cmd-tell (client message line)
+  (let ((word1 (nth-word 1 line))
+        (word2 (nth-word 2 line))
+        (rest (nth-value 1 (nth-word 1 line))))
+    (when (and word1 word2
+               (or (match-prefix-p *command-prefix* word2)
+                   (match-prefix-p *eval-prefix* word2)))
+      (send :terminal message)
+      (handle-input-message
+       client (make-instance
+               'server-privmsg
+               :command (command message)
+               :prefix (prefix message)
+               :arguments (list word1 rest)
+               :tell-intro (make-instance
+                            'client-privmsg
+                            :target word1
+                            :contents (irc-fmt "User ~A tells: ~A"
+                                               (trivial-irc:prefix-nickname
+                                                (prefix message))
+                                               rest)))))))
 
 (defmethod handle-input-message ((client client) (message server-privmsg-cmd))
   (let ((target (first (arguments message)))
@@ -450,57 +500,20 @@
 
       ((string-equal "help" (nth-word 0 line))
        (send-message-or-tell-intro client message)
-       (send :terminal (format nil "[Sending help strings to ~A.]" target))
-       (loop :for line :in *command-help-strings*
-             :for msg := (make-instance 'client-privmsg
-                                        :target target
-                                        :contents (irc-fmt line))
-             :do (queue-add (send-queue client) msg)))
+       (cmd-help client target))
 
       ((string-equal "source" (nth-word 0 line))
        (send-message-or-tell-intro client message)
-       (let ((new (make-instance 'client-privmsg
-                                 :target target
-                                 :contents (irc-fmt "Bot's source code: ~A"
-                                                    *source-code-url*))))
-         (send :terminal new)
-         (queue-add (send-queue client) new)))
+       (cmd-source client target))
 
       ((and (string-equal "clhs" (nth-word 0 line))
             (nth-word 1 line))
        (send-message-or-tell-intro client message)
-       (let* ((spec (nth-word 1 line))
-              (contents (let ((url (clhs-url:clhs spec)))
-                          (if url
-                              (irc-fmt "~A (~A)" url (string-upcase spec))
-                              (irc-fmt "No CLHS match for ~A." spec)))))
-         (let ((new (make-instance 'client-privmsg :target target
-                                   :contents contents)))
-           (send :terminal new)
-           (queue-add (send-queue client) new))))
+       (cmd-clhs client target line))
 
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
-       (let ((word1 (nth-word 1 line))
-             (word2 (nth-word 2 line))
-             (rest (nth-value 1 (nth-word 1 line))))
-         (when (and word1 word2
-                    (or (match-prefix-p *command-prefix* word2)
-                        (match-prefix-p *eval-prefix* word2)))
-           (send :terminal message)
-           (handle-input-message
-            client (make-instance
-                    'server-privmsg
-                    :command (command message)
-                    :prefix (prefix message)
-                    :arguments (list word1 rest)
-                    :tell-intro (make-instance
-                                 'client-privmsg
-                                 :target word1
-                                 :contents (irc-fmt "User ~A tells: ~A"
-                                                    (trivial-irc:prefix-nickname
-                                                     (prefix message))
-                                                    rest))))))))))
+       (cmd-tell client message line)))))
 
 (defvar *max-input-queue-length* 10)
 
