@@ -581,6 +581,79 @@
                                                 (prefix message))
                                                rest)))))))
 
+(defun cmd-def (client target line)
+  (let* ((word (string-downcase (nth-word 1 line)))
+         (definitions (dictionary-read word)))
+    (if (and word definitions)
+        (loop :for def :in definitions
+              :for n :upfrom 1
+              :for new := (make-instance
+                           'client-privmsg
+                           :target target
+                           :contents (irc-fmt "~A ~D: ~A" word n def))
+              :do (send :terminal new)
+              (queue-add (send-queue client) new))
+        (let ((new (make-instance 'client-privmsg
+                                  :target target
+                                  :contents
+                                  (irc-fmt "No definitions for \"~A\"."
+                                           word))))
+          (send :terminal new)
+          (queue-add (send-queue client) new)))))
+
+(defun cmd-def+ (client target line)
+  (let* ((word0 (nth-word 0 line))
+         (before (let ((sub (subseq word0 #.(length "def+"))))
+                   (if (and (plusp (length sub))
+                            (every #'digit-char-p sub))
+                       (1- (parse-integer sub))
+                       nil)))
+         (word1 (nth-word 1 line))
+         (def (nth-value 1 (nth-word 1 line))))
+    (dictionary-insert word1 def before)
+    (let ((new (make-instance
+                'client-privmsg
+                :target target
+                :contents (irc-fmt "Added new definition for \"~A\"." word1))))
+      (send :terminal new)
+      (queue-add (send-queue client) new))))
+
+(defun cmd-def- (client target line)
+  (let* ((word0 (nth-word 0 line))
+         (nth (let ((sub (subseq word0 #.(length "def-"))))
+                (if (and (plusp (length sub))
+                         (every #'digit-char-p sub))
+                    (1- (parse-integer sub))
+                    nil)))
+         (word1 (nth-word 1 line))
+         (def (dictionary-read word1))
+         msg)
+
+    (cond ((null def)
+           (setf msg (irc-fmt "No definitions for \"~A\"." word1)))
+          ((or (and (not nth) (= (length def) 1))
+               (and nth (<= 0 nth (1- (length def)))))
+           (dictionary-delete word1 (or nth 0))
+           (setf msg (if (dictionary-read word1)
+                         (irc-fmt
+                          "Deleted definition ~D from \"~A\" (~D left)."
+                          (1+ nth) word1 (length (dictionary-read word1)))
+                         (irc-fmt "Deleted the last definition from \"~A\"."
+                                  word1))))
+          ((and (not nth)
+                (>= (length def) 2))
+           (setf msg (irc-fmt "There are ~D definitions for \"~A\". ~
+                Please specify a number." (length def) word1)))
+          (nth
+           (setf msg (irc-fmt "There's no definition ~D for \"~A\"."
+                              (1+ nth) word1))))
+
+    (let ((new (make-instance 'client-privmsg
+                              :target target
+                              :contents msg)))
+      (send :terminal new)
+      (queue-add (send-queue client) new))))
+
 (defmethod handle-input-message ((client client) (message server-privmsg-cmd))
   (let ((target (first (arguments message)))
         (line (subseq (second (arguments message)) (length *command-prefix*))))
@@ -602,7 +675,22 @@
 
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
-       (cmd-tell client message line)))))
+       (cmd-tell client message line))
+
+      ((and (string-equal "def" (nth-word 0 line))
+            (nth-word 1 line))
+       (send-message-or-tell-intro client message)
+       (cmd-def client target line))
+
+      ((and (match-prefix-p "def+" (string-downcase (nth-word 0 line)))
+            (nth-word 2 line))
+       (send-message-or-tell-intro client message)
+       (cmd-def+ client target line))
+
+      ((and (match-prefix-p "def-" (string-downcase (nth-word 0 line)))
+            (nth-word 1 line))
+       (send-message-or-tell-intro client message)
+       (cmd-def- client target line)))))
 
 (defvar *max-input-queue-length* 10)
 
