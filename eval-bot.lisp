@@ -109,21 +109,6 @@
                  (list-all-packages)
                  :key #'package-name))
 
-(defconstant +action-char+ (code-char 1))
-
-(defun action-to-string (action-string)
-  (let ((len (length action-string)))
-    (when (and (>= len 9)
-               (string= (format nil "~CACTION " +action-char+)
-                        (subseq action-string 0 8))
-               (char= +action-char+ (elt action-string (1- len))))
-      (subseq action-string 8 (1- len)))))
-
-(defun string-to-action (string)
-  (if (action-to-string string)
-      string
-      (format nil "~CACTION ~A~C" +action-char+ string +action-char+)))
-
 (defun iso-time (&optional (universal-time (get-universal-time)))
   (multiple-value-bind (sec min hour date month year day dst tz)
       (decode-universal-time universal-time 0)
@@ -227,6 +212,21 @@
    (target :accessor target :initarg :target)
    (contents :accessor contents :initarg :contents)))
 (defclass client-action (client-privmsg) nil)
+
+(defconstant +action-char+ (code-char 1))
+
+(defun action-to-string (action-string)
+  (let ((len (length action-string)))
+    (when (and (>= len 9)
+               (string= (format nil "~CACTION " +action-char+)
+                        (subseq action-string 0 8))
+               (char= +action-char+ (elt action-string (1- len))))
+      (subseq action-string 8 (1- len)))))
+
+(defun string-to-action (string)
+  (if (action-to-string string)
+      string
+      (format nil "~CACTION ~A~C" +action-char+ string +action-char+)))
 
 (defun truncate-message (string)
   ;; FIXME: This counts CL character objects but IRC protocol is about
