@@ -270,14 +270,14 @@
                                    format-string)
          args))
 
-;;; Dictionary
+;;; Definitions
 
-(defclass dictionary (eval-bot)
+(defclass definitions (eval-bot)
   ((hash :reader hash :initform (make-hash-table :test #'equal))
-   (lock :reader lock :initform (bt:make-lock "dictionary"))
+   (lock :reader lock :initform (bt:make-lock "definitions"))
    (changed :accessor changed :initform nil)))
 
-(defvar *dictionary* (make-instance 'dictionary))
+(defvar *definitions* (make-instance 'definitions))
 
 (defun insert-before-nth (n new-item list)
   (cond ((null list) (list new-item))
@@ -293,9 +293,9 @@
         :for n :upfrom 0
         :unless (= n nth) :collect item))
 
-(defun dictionary-insert (word definition &optional nth)
+(defun definitions-add (word definition &optional nth)
   (setf word (string-downcase word))
-  (with-slots (lock hash changed) *dictionary*
+  (with-slots (lock hash changed) *definitions*
     (bt:with-lock-held (lock)
       (let ((old (gethash word hash)))
         (setf (gethash word hash)
@@ -304,13 +304,13 @@
                   (append old (list definition)))
               changed t)))))
 
-(defun dictionary-read (word)
-  (bt:with-lock-held ((lock *dictionary*))
-    (gethash (string-downcase word) (hash *dictionary*))))
+(defun definitions-read (word)
+  (bt:with-lock-held ((lock *definitions*))
+    (gethash (string-downcase word) (hash *definitions*))))
 
-(defun dictionary-delete (word nth)
+(defun definitions-delete (word nth)
   (setf word (string-downcase word))
-  (with-slots (lock hash changed) *dictionary*
+  (with-slots (lock hash changed) *definitions*
     (bt:with-lock-held (lock)
       (let ((old (gethash word hash)))
         (setf (gethash word hash) (remove-nth nth old)
@@ -318,44 +318,45 @@
         (unless (gethash word hash)
           (remhash word hash))))))
 
-(defvar *dictionary-pathname*
-  (merge-pathnames #p "eval-bot-dictionary" (user-homedir-pathname)))
+(defvar *definitions-pathname*
+  (merge-pathnames #p "definitions.lisp" (user-homedir-pathname)))
 
-(defun dictionary-load ()
+(defun definitions-load ()
   (with-standard-io-syntax
     (let ((*read-eval* nil))
       (handler-case
-          (with-open-file (file *dictionary-pathname*
+          (with-open-file (file *definitions-pathname*
                                 :direction :input
                                 :if-does-not-exist :error)
-            (bt:with-lock-held ((lock *dictionary*))
+            (bt:with-lock-held ((lock *definitions*))
               (loop :for expr := (read file nil)
                     :while expr
-                    :do (setf (gethash (first expr) (hash *dictionary*))
+                    :do (setf (gethash (first expr) (hash *definitions*))
                               (rest expr))))
-            (send :terminal "Dictionary loaded."))
+            (send :terminal "Definitions loaded."))
 
         (file-error (c)
           (send :terminal (format nil "~A: ~A" (type-of c) c))
-          (send :terminal "Dictionary load failed."))))))
+          (send :terminal "Load definitions failed."))))))
 
-(defun dictionary-save ()
+(defun definitions-save ()
   (with-standard-io-syntax
     (handler-case
-        (with-open-file (file *dictionary-pathname*
+        (with-open-file (file *definitions-pathname*
                               :direction :output
                               :if-exists :rename)
-          (format file ";;; Eval-bot dictionary~%")
-          (bt:with-lock-held ((lock *dictionary*))
-            (loop :for key :being :each :hash-key :in (hash *dictionary*)
+          (format file ";;; Eval-bot definitions~%")
+          (bt:with-lock-held ((lock *definitions*))
+            (loop :for key :being :each :hash-key :in (hash *definitions*)
                   :using (hash-value value)
                   :do (write (cons key value) :stream file)
                   (terpri file))
-            (setf (changed *dictionary*) nil)))
+            (setf (changed *definitions*) nil))
+          (send :terminal "Definitions saved."))
 
       (file-error (c)
         (send :terminal (format nil "~A: ~A" (type-of c) c))
-        (send :terminal "Dictionary save failed.")))))
+        (send :terminal "Save definitions failed.")))))
 
 ;;; General maintainer
 
@@ -371,8 +372,8 @@
           (loop (sleep *maintainer-interval*)
                 (ignore-errors
                   (delete-unused-packages))
-                (when (changed *dictionary*)
-                  (dictionary-save))))))
+                (when (changed *definitions*)
+                  (definitions-save))))))
 
 ;;; IRC
 
@@ -598,7 +599,7 @@
 
 (defun cmd-def (client target line)
   (let* ((word (string-downcase (nth-word 1 line)))
-         (definitions (dictionary-read word)))
+         (definitions (definitions-read word)))
     (if (and word definitions)
         (loop :for def :in definitions
               :for n :upfrom 1
@@ -625,7 +626,7 @@
                        nil)))
          (word1 (nth-word 1 line))
          (def (nth-value 1 (nth-word 1 line))))
-    (dictionary-insert word1 def before)
+    (definitions-add word1 def before)
     (let ((new (make-instance
                 'client-privmsg
                 :target target
@@ -641,18 +642,18 @@
                     (1- (parse-integer sub))
                     nil)))
          (word1 (nth-word 1 line))
-         (def (dictionary-read word1))
+         (def (definitions-read word1))
          msg)
 
     (cond ((null def)
            (setf msg (irc-fmt "No definitions for \"~A\"." word1)))
           ((or (and (not nth) (= (length def) 1))
                (and nth (<= 0 nth (1- (length def)))))
-           (dictionary-delete word1 (or nth 0))
-           (setf msg (if (dictionary-read word1)
+           (definitions-delete word1 (or nth 0))
+           (setf msg (if (definitions-read word1)
                          (irc-fmt
                           "Deleted definition ~D from \"~A\" (~D left)."
-                          (1+ nth) word1 (length (dictionary-read word1)))
+                          (1+ nth) word1 (length (definitions-read word1)))
                          (irc-fmt "Deleted the last definition from \"~A\"."
                                   word1))))
           ((and (not nth)
