@@ -624,7 +624,7 @@
                             (every #'digit-char-p sub))
                        (1- (parse-integer sub))
                        nil)))
-         (word1 (nth-word 1 line))
+         (word1 (string-downcase (nth-word 1 line)))
          (def (nth-value 1 (nth-word 1 line))))
     (definitions-add word1 def before)
     (let ((new (make-instance
@@ -641,7 +641,7 @@
                          (every #'digit-char-p sub))
                     (1- (parse-integer sub))
                     nil)))
-         (word1 (nth-word 1 line))
+         (word1 (string-downcase (nth-word 1 line)))
          (def (definitions-read word1))
          msg)
 
