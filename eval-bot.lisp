@@ -118,21 +118,6 @@
     (format nil "~D~2,'0D~2,'0DT~2,'0D~2,'0D~2,'0DZ"
             year month date hour min sec)))
 
-(defvar *maintainer-thread* nil)
-(defvar *maintainer-interval* 60)
-
-(defun start-maintainer ()
-  (when (and (bt:threadp *maintainer-thread*)
-             (bt:thread-alive-p *maintainer-thread*))
-    (bt:destroy-thread *maintainer-thread*))
-  (setf *maintainer-thread*
-        (with-thread ("eval-bot maintainer")
-          (loop (sleep *maintainer-interval*)
-                (ignore-errors
-                  (delete-unused-packages))
-                (when (changed *dictionary*)
-                  (dictionary-save))))))
-
 ;;; Queues
 
 (defclass queue (eval-bot)
@@ -371,6 +356,23 @@
       (file-error (c)
         (send :terminal (format nil "~A: ~A" (type-of c) c))
         (send :terminal "Dictionary save failed.")))))
+
+;;; General maintainer
+
+(defvar *maintainer-thread* nil)
+(defvar *maintainer-interval* 60)
+
+(defun start-maintainer ()
+  (when (and (bt:threadp *maintainer-thread*)
+             (bt:thread-alive-p *maintainer-thread*))
+    (bt:destroy-thread *maintainer-thread*))
+  (setf *maintainer-thread*
+        (with-thread ("eval-bot maintainer")
+          (loop (sleep *maintainer-interval*)
+                (ignore-errors
+                  (delete-unused-packages))
+                (when (changed *dictionary*)
+                  (dictionary-save))))))
 
 ;;; IRC
 
