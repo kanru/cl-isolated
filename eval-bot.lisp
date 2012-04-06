@@ -280,6 +280,93 @@
                                    format-string)
          args))
 
+;;; Dictionary
+
+(defclass dictionary (eval-bot)
+  ((hash :reader hash :initform (make-hash-table :test #'equal))
+   (lock :reader lock :initform (bt:make-lock "dictionary"))
+   (changed :accessor changed :initform nil)))
+
+(defvar *dictionary* (make-instance 'dictionary))
+
+(defun insert-before-nth (n new-item list)
+  (cond ((null list) (list new-item))
+        ((minusp n) (cons new-item list))
+        (t (loop :for (item . rest) :on list
+                 :for i :upfrom 0
+                 :if (= i n) :collect new-item
+                 :collect item
+                 :if (and (null rest) (> n i)) :collect new-item))))
+
+(defun remove-nth (nth list)
+  (loop :for item :in list
+        :for n :upfrom 0
+        :unless (= n nth) :collect item))
+
+(defun dictionary-insert (word definition &optional nth)
+  (setf word (string-downcase word))
+  (with-slots (lock hash changed) *dictionary*
+    (bt:with-lock-held (lock)
+      (let ((old (gethash word hash)))
+        (setf (gethash word hash)
+              (if nth
+                  (insert-before-nth nth definition old)
+                  (append old (list definition)))
+              changed t)))))
+
+(defun dictionary-read (word)
+  (bt:with-lock-held ((lock *dictionary*))
+    (gethash (string-downcase word) (hash *dictionary*))))
+
+(defun dictionary-delete (word nth)
+  (setf word (string-downcase word))
+  (with-slots (lock hash changed) *dictionary*
+    (bt:with-lock-held (lock)
+      (let ((old (gethash word hash)))
+        (setf (gethash word hash) (remove-nth nth old)
+              changed t)
+        (unless (gethash word hash)
+          (remhash word hash))))))
+
+(defvar *dictionary-pathname*
+  (merge-pathnames #p "eval-bot-dictionary" (user-homedir-pathname)))
+
+(defun dictionary-load ()
+  (with-standard-io-syntax
+    (let ((*read-eval* nil))
+      (handler-case
+          (with-open-file (file *dictionary-pathname*
+                                :direction :input
+                                :if-does-not-exist :error)
+            (bt:with-lock-held ((lock *dictionary*))
+              (loop :for expr := (read file nil)
+                    :while expr
+                    :do (setf (gethash (first expr) (hash *dictionary*))
+                              (rest expr))))
+            (send :terminal "Dictionary loaded."))
+
+        (file-error (c)
+          (send :terminal (format nil "~A: ~A" (type-of c) c))
+          (send :terminal "Dictionary load failed."))))))
+
+(defun dictionary-save ()
+  (with-standard-io-syntax
+    (handler-case
+        (with-open-file (file *dictionary-pathname*
+                              :direction :output
+                              :if-exists :rename)
+          (format file ";;; Eval-bot dictionary~%")
+          (bt:with-lock-held ((lock *dictionary*))
+            (loop :for key :being :each :hash-key :in (hash *dictionary*)
+                  :using (hash-value value)
+                  :do (write (cons key value) :stream file)
+                  (terpri file))
+            (setf (changed *dictionary*) nil)))
+
+      (file-error (c)
+        (send :terminal (format nil "~A: ~A" (type-of c) c))
+        (send :terminal "Dictionary save failed.")))))
+
 ;;; IRC
 
 (defvar *default-quit-message* "clbot")
