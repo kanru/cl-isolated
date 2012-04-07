@@ -611,7 +611,7 @@
                :tell-intro (make-instance
                             'client-privmsg
                             :target word1
-                            :contents (irc-fmt "User ~A tells: ~A"
+                            :contents (irc-fmt "User \"~A\" tells: ~A"
                                                (trivial-irc:prefix-nickname
                                                 (prefix message))
                                                rest)))))))
