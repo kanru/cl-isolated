@@ -801,6 +801,12 @@
                            (incf (nick-uniq-count client))))
   (call-next-method))
 
+(defmethod trivial-irc:handle ((command (eql :err_nickcollision))
+                               (client client) prefix arguments)
+  (irc-nick client (format nil "~A~A" (trivial-irc:nickname client)
+                           (incf (nick-uniq-count client))))
+  (call-next-method))
+
 (defmethod trivial-irc:handle ((command (eql :rpl_endofmotd))
                                (client client) prefix arguments)
   (with-thread ("connection established")
