@@ -192,8 +192,8 @@
             (stream-error (c)
               (msge stream "~A" (type-of c)))
 
-            (storage-condition (c)
-              (msge stream "~A" (type-of c)))
+            (storage-condition ()
+              (msge stream "STORAGE-CONDITION"))
 
             (t (c)
               (msge stream "~A: ~A" (type-of c) c)))
