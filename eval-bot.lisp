@@ -776,7 +776,6 @@
                   :do (handle-input-message client msg))))))
 
 (defun connection-established (client)
-  (sleep 3)
   (start-maintainer)
   (start-queue-handlers client)
   (ignore-errors
@@ -805,6 +804,7 @@
 (defmethod trivial-irc:handle ((command (eql :rpl_endofmotd))
                                (client client) prefix arguments)
   (with-thread ("connection established")
+    (sleep 3)
     (handler-case (connection-established client)
       (t (c)
         (send :terminal (princ-to-string (type-of c)))
