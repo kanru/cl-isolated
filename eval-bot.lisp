@@ -389,7 +389,9 @@
 (defun irc-quit (client &optional (message *default-quit-message*))
   (queue-clear (input-queue client))
   (queue-clear (send-queue client))
-  (trivial-irc:disconnect client :message message))
+  (trivial-irc:disconnect client :message message)
+  (when (changed *definitions*)
+    (definitions-save)))
 
 (defun irc-join (client channel &optional password)
   (irc-raw client (format nil "JOIN ~A~@[ ~A~]" channel password)))
