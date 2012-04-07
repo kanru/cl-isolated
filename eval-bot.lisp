@@ -588,7 +588,7 @@
          (contents (let ((url (clhs-url:clhs spec)))
                      (if url
                          (irc-fmt "~A (~A)" url (string-upcase spec))
-                         (irc-fmt "No CLHS match for ~A." spec))))
+                         (irc-fmt "No CLHS match for \"~A\"." spec))))
          (new (make-instance 'client-privmsg :target target
                              :contents contents)))
     (send :terminal new)
