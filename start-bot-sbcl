@@ -11,5 +11,5 @@ while true; do
 		--disable-ldb --lose-on-corruption \
 		--noinform --no-sysinit --no-userinit \
 		--load loader-sbcl.lisp \
-		&& exit 0
+		"$@" && exit 0
 done
