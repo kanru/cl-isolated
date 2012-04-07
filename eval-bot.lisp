@@ -779,8 +779,14 @@
   (start-maintainer)
   (start-queue-handlers client)
   (ignore-errors
-    (loop :for (ch . key) :in (auto-join client)
-          :do (sleep 1) (irc-join client ch key))))
+    (loop :for ch :in (auto-join client)
+          :do (sleep 1)
+          (cond ((stringp ch)
+                 (irc-join client ch))
+                ((and (consp ch)
+                      (stringp (car ch))
+                      (stringp (cdr ch)))
+                 (irc-join client (car ch) (cdr ch)))))))
 
 (defmethod trivial-irc:handle ((command (eql :privmsg))
                                (client client) prefix arguments)
