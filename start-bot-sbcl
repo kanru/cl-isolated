@@ -5,7 +5,11 @@ export TZ=GMT
 
 cd "$(dirname "$0")" || exit 1
 
-exec nice rlwrap -D -- "$sbcl" \
-	--control-stack-size 1 \
-	--noinform --no-sysinit --no-userinit \
-	--load loader-sbcl.lisp
+while true; do
+	nice rlwrap -D -- "$sbcl" \
+		--control-stack-size 1 \
+		--disable-ldb --lose-on-corruption \
+		--noinform --no-sysinit --no-userinit \
+		--load loader-sbcl.lisp \
+		&& exit 0
+done
