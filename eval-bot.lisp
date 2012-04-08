@@ -486,16 +486,14 @@
 
 (defun sandbox-repl (sandbox-name string &optional (stream *standard-output*))
   (update-sandbox-usage sandbox-name)
-  (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
-    (let ((sandbox-impl:*sandbox* sandbox-name))
-      (sandbox-impl:repl string stream))))
+  (let ((sandbox-impl:*sandbox* sandbox-name))
+    (sandbox-impl:repl string stream)))
 
 (defun sandbox-init (sandbox-name)
   (update-sandbox-usage sandbox-name)
   (unless (find-package sandbox-name)
-    (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
-      (let ((sandbox-impl:*sandbox* sandbox-name))
-        (sandbox-impl:reset)))))
+    (let ((sandbox-impl:*sandbox* sandbox-name))
+      (sandbox-impl:reset))))
 
 (defun send-message-or-tell-intro (client message)
   (let ((intro (tell-intro message)))
