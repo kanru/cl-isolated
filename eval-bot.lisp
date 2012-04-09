@@ -764,7 +764,8 @@
                   :while (connectedp client)
                   :do (sleep *input-queue-interval*)
                   :if (typep msg 'server-privmsg)
-                  :do (handle-input-message client msg))))))
+                  :do (with-thread ("input message handler")
+                        (handle-input-message client msg)))))))
 
 (defun connection-established (client)
   (start-maintainer)
