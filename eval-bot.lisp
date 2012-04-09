@@ -27,15 +27,6 @@
 
 ;;; Threads
 
-(defparameter *thread-name-eval*
-  "eval-bot eval handler")
-(defparameter *thread-name-server-message*
-  "eval-bot server message handler")
-(defparameter *thread-name-send-queue*
-  "eval-bot send queue handler")
-(defparameter *thread-name-input-queue*
-  "eval-bot input queue handler")
-
 (defmacro with-thread ((name &key timeout) &body body)
   (let ((main (gensym "MAIN-THREAD"))
         (time (gensym "TIMEOUT"))
@@ -416,7 +407,7 @@
                (bt:thread-alive-p thread))
       (bt:destroy-thread thread)))
   (setf (server-message-thread client)
-        (with-thread (*thread-name-server-message*)
+        (with-thread ("server message handler")
           (block nil
             (handler-bind
 
@@ -513,7 +504,7 @@
     (send-message-or-tell-intro client message)
     (sandbox-init sandbox-name)
 
-    (with-thread (*thread-name-eval* :timeout *eval-timeout*)
+    (with-thread ("eval and print" :timeout *eval-timeout*)
       (let ((string (clean-string (with-output-to-string (stream)
                                     (sandbox-repl sandbox-name
                                                   contents stream)))))
@@ -760,7 +751,7 @@
       (bt:destroy-thread send-queue-thread))
 
     (setf send-queue-thread
-          (with-thread (*thread-name-send-queue*)
+          (with-thread ("send queue handler")
             (loop :for msg := (queue-pop (send-queue client))
                   :while (connectedp client)
                   :do (sleep *send-queue-interval*)
@@ -768,7 +759,7 @@
                   :do (send client msg)))
 
           input-queue-thread
-          (with-thread (*thread-name-input-queue*)
+          (with-thread ("input queue handler")
             (loop :for msg := (queue-pop (input-queue client))
                   :while (connectedp client)
                   :do (sleep *input-queue-interval*)
