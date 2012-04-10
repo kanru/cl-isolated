@@ -24,7 +24,7 @@
                 "split-sequence" "swank"))
 
 (load "sandbox-impl.lisp")
-(load "sandbox-pkg.lisp")
+(load "sandbox-cl.lisp")
 (load "clhs-url.lisp")
 (load "eval-bot.lisp")
 

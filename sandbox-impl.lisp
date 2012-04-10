@@ -133,7 +133,7 @@
 
 (defun reset ()
   (delete-package *sandbox*)
-  (make-package *sandbox* :use '(#:sandbox-pkg))
+  (make-package *sandbox* :use '(#:sandbox-cl))
   (loop :for name :in '("+" "++" "+++" "*" "**" "***" "/" "//" "///" "-")
         :do (eval `(defparameter ,(intern name *sandbox*) nil)))
   (loop :for fn :in '(+ - * /)

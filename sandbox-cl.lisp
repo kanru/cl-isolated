@@ -16,8 +16,8 @@
 ;; License along with this program. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(cl:defpackage #:sandbox-pkg)
-(cl:in-package #:sandbox-pkg)
+(cl:defpackage #:sandbox-cl)
+(cl:in-package #:sandbox-cl)
 
 (cl:declaim (cl:optimize (cl:safety 3)))
 
