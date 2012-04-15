@@ -19,8 +19,9 @@ features specific to [[http://www.sbcl.org/][SBCL]] implementation.
 ** IRC
 
 Common Lisp package =EVAL-BOT= contains the IRC part of the program.
-Currently the source code is totally undocumented. There are no comments
-nor documentation strings.
+Function =make-client= creates a client object which is be used with
+IRC-related functions, such as =irc-connect=, =irc-join=, =irc-quit=
+etc.
 
 ** Sandbox
 
@@ -28,8 +29,14 @@ Common Lisp expressions from an IRC channel are evaluated in a sandbox
 environment which provides only a subset of Common Lisp features. In
 general, many features related to symbols, packages and operating system
 have been disabled. The sandbox is implemented in packages
-=SANDBOX-IMPL= and =SANDBOX-PKG=. Function =sandbox-impl:repl= is the
+=SANDBOX-IMPL= and =SANDBOX-CL=. Function =sandbox-impl:repl= is the
 interface for sandbox code evaluation.
+
+Each user has automatically her own sandbox package. User-defined
+variables and functions are not shared between users. Users have their
+own REPL variables too: =* ** *** / // /// + ++ +++=. The user-specific
+sandbox package is temporary and is automatically deleted if not used
+for a while.
 
 ** The source code repository
 
