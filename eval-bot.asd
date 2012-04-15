@@ -1,8 +1,9 @@
 (defsystem :eval-bot
   :depends-on (:bordeaux-threads :trivial-irc :alexandria
                                  :split-sequence)
-  :serial t
-  :components ((:file "sandbox-impl")
-               (:file "sandbox-cl")
-               (:file "clhs-url")
-               (:file "eval-bot")))
+  :components
+  ((:file "sandbox-impl")
+   (:file "sandbox-cl" :depends-on ("sandbox-impl"))
+   (:file "clhs-url")
+   (:file "general")
+   (:file "eval-bot" :depends-on ("general" "sandbox-impl" "clhs-url"))))

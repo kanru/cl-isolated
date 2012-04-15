@@ -17,7 +17,7 @@
 ;; <http://www.gnu.org/licenses/>.
 
 (defpackage #:eval-bot
-  (:use #:cl))
+  (:use #:cl #:general))
 
 (in-package #:eval-bot)
 
@@ -25,125 +25,12 @@
 
 (defclass eval-bot () nil)
 
-;;; Threads
-
-(defmacro with-thread ((name &key timeout) &body body)
-  (let ((main (gensym "MAIN-THREAD"))
-        (time (gensym "TIMEOUT"))
-        (main-body (loop :for form :in body
-                         :until (eql form :timeout)
-                         :collect form))
-        (timeout-body (rest (member :timeout body))))
-    `(let ((,time ,timeout))
-       (assert (or (not ,time) (and (realp ,time) (not (minusp ,time))))
-               nil "TIMEOUT must be a non-negative real number or NIL.")
-       (let ((,main (bt:make-thread (lambda () ,@main-body) :name ,name)))
-         (when ,time
-           (bt:make-thread (lambda ()
-                             (sleep ,time)
-                             (when (bt:thread-alive-p ,main)
-                               (bt:destroy-thread ,main)
-                               ,@timeout-body))
-                           :name (format nil "~A timeout"
-                                         (bt:thread-name ,main))))
-         ,main))))
-
 ;;; Misc
 
 (defvar *enabled* t)
 
 (defun enable () (setf *enabled* t))
 (defun disable () (setf *enabled* nil))
-
-;;; Maintenance
-
-(defclass sandbox-package (eval-bot)
-  ((lock :reader lock :initform (bt:make-lock "sandbox-package"))
-   (last-use :accessor last-use)))
-
-(defvar *sandbox-usage* (make-hash-table :test #'equal))
-
-(defun update-sandbox-usage (sandbox-name)
-  (let ((package (gethash sandbox-name *sandbox-usage*)))
-    (unless (typep package 'sandbox-package)
-      (setf package (make-instance 'sandbox-package)
-            (gethash sandbox-name *sandbox-usage*) package))
-    (bt:with-lock-held ((lock (gethash sandbox-name *sandbox-usage*)))
-      (setf (last-use package) (get-universal-time)))))
-
-(defvar *max-sandbox-age* (* 15 60))
-
-(defun delete-unused-packages ()
-  (let ((current-time (get-universal-time)))
-    (maphash (lambda (package-name package)
-               (bt:with-lock-held ((lock package))
-                 (when (or (not (find-package package-name))
-                           (> (- current-time (last-use package))
-                              *max-sandbox-age*))
-                   (remhash package-name *sandbox-usage*)
-                   (delete-package package-name))))
-             *sandbox-usage*)))
-
-(defun delete-all-packages ()
-  (maphash (lambda (package-name package)
-             (bt:with-lock-held ((lock package))
-               (remhash package-name *sandbox-usage*)
-               (delete-package package-name)))
-           *sandbox-usage*))
-
-(defvar *sandbox-package-prefix* "SANDBOX/")
-
-(defun list-user-sandbox-packages ()
-  (remove-if-not (lambda (item)
-                   (string= *sandbox-package-prefix*
-                            (subseq item 0
-                                    (min (length item)
-                                         (length *sandbox-package-prefix*)))))
-                 (list-all-packages)
-                 :key #'package-name))
-
-(defun iso-time (&optional (universal-time (get-universal-time)))
-  (multiple-value-bind (sec min hour date month year day dst tz)
-      (decode-universal-time universal-time 0)
-    (declare (ignore dst day tz))
-    (format nil "~D~2,'0D~2,'0DT~2,'0D~2,'0D~2,'0DZ"
-            year month date hour min sec)))
-
-;;; Queues
-
-(defclass queue (eval-bot)
-  ((queue-first :accessor queue-first :initform nil)
-   (queue-last :accessor queue-last :initform nil)
-   (queue-length :accessor queue-length :initform 0)
-   (lock :reader lock :initform (bt:make-lock "queue"))))
-
-(defun queue-add (queue item)
-  (bt:with-lock-held ((lock queue))
-    (with-slots (queue-first queue-last queue-length) queue
-      (let ((new-cons (cons item nil)))
-        (if (and queue-first queue-last)
-            (setf (cdr queue-last) new-cons)
-            (setf queue-first new-cons))
-        (setf queue-last new-cons)
-        (incf queue-length)
-        item))))
-
-(defun queue-pop (queue)
-  (bt:with-lock-held ((lock queue))
-    (with-slots (queue-first queue-last queue-length) queue
-      (if queue-first
-          (let ((first (pop queue-first)))
-            (decf queue-length)
-            (unless queue-first
-              (setf queue-last nil))
-            (values first t))
-          (values nil nil)))))
-
-(defun queue-clear (queue)
-  (bt:with-lock-held ((lock queue))
-    (setf (queue-first queue) nil
-          (queue-last queue) nil
-          (queue-length queue) 0)))
 
 ;;; Clients
 
@@ -208,6 +95,13 @@
   (if (action-to-string string)
       string
       (format nil "~CACTION ~A~C" +action-char+ string +action-char+)))
+
+(defun iso-time (&optional (universal-time (get-universal-time)))
+  (multiple-value-bind (sec min hour date month year day dst tz)
+      (decode-universal-time universal-time 0)
+    (declare (ignore dst day tz))
+    (format nil "~D~2,'0D~2,'0DT~2,'0D~2,'0D~2,'0DZ"
+            year month date hour min sec)))
 
 (defun truncate-message (string)
   ;; FIXME: This counts CL character objects but IRC protocol is about
@@ -466,14 +360,6 @@
                  (substitute-if #\Space (lambda (char)
                                           (member char '(#\Newline #\Tab)))
                                 string)))
-
-(defvar *sandbox-package-prefix* "SANDBOX/")
-
-(defun user-to-sandbox-name (user)
-  (let ((excl (position #\! user)))
-    (string-upcase (concatenate 'string
-                                *sandbox-package-prefix*
-                                (subseq user (or excl 0))))))
 
 (defun sandbox-repl (sandbox-name string &optional (stream *standard-output*))
   (update-sandbox-usage sandbox-name)

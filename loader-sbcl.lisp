@@ -26,6 +26,7 @@
 (load "sandbox-impl.lisp")
 (load "sandbox-cl.lisp")
 (load "clhs-url.lisp")
+(load "general.lisp")
 (load "eval-bot.lisp")
 
 (in-package #:eval-bot)
