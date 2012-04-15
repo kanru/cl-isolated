@@ -23,8 +23,6 @@
 
 (declaim (optimize (safety 3)))
 
-(defclass eval-bot () nil)
-
 ;;; Misc
 
 (defvar *enabled* t)
@@ -60,7 +58,7 @@
 (defvar *local-stream* *terminal-io*)
 (defvar *irc-message-max-length* 400)
 
-(defclass message (eval-bot)
+(defclass message ()
   ((timestamp :reader timestamp :initform (get-universal-time))))
 
 (defclass server-message (message)
@@ -157,7 +155,7 @@
 
 ;;; Definitions
 
-(defclass definitions (eval-bot)
+(defclass definitions ()
   ((hash :reader hash :initform (make-hash-table :test #'equal))
    (lock :reader lock :initform (bt:make-lock "definitions"))
    (changed :accessor changed :initform nil)))
