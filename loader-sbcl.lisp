@@ -20,14 +20,10 @@
                  (funcallstr "quicklisp-quickstart:install")))
           (delete-file init)))))
 
-(ql:quickload '("bordeaux-threads" "trivial-irc" "alexandria"
-                "split-sequence" "swank"))
+(pushnew (make-pathname :directory (pathname-directory *load-pathname*))
+         asdf:*central-registry*)
 
-(load "sandbox-impl.lisp")
-(load "sandbox-cl.lisp")
-(load "clhs-url.lisp")
-(load "general.lisp")
-(load "eval-bot.lisp")
+(ql:quickload '("swank" "eval-bot"))
 
 (in-package #:eval-bot)
 
