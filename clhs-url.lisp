@@ -1,4 +1,4 @@
-;;; Eval-bot --- An IRC bot for CL eval and help
+;;;; Eval-bot --- An IRC bot for CL eval and help
 
 ;; Copyright (C) 2012 Teemu Likonen <tlikonen@iki.fi>
 ;;

@@ -1,4 +1,4 @@
-;;; Eval-bot loader
+;;;; Eval-bot loader
 
 (flet ((probe-load (path &optional (default (user-homedir-pathname)))
          (let ((path (merge-pathnames path default)))
