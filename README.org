@@ -19,7 +19,7 @@ features specific to [[http://www.sbcl.org/][SBCL]] implementation.
 ** IRC
 
 Common Lisp package =EVAL-BOT= contains the IRC part of the program.
-Function =make-client= creates a client object which is be used with
+Function =make-client= creates a client object which is used with
 IRC-related functions, such as =irc-connect=, =irc-join=, =irc-quit=
 etc.
 
@@ -32,7 +32,7 @@ have been disabled. The sandbox is implemented in packages
 =SANDBOX-IMPL= and =SANDBOX-CL=. Function =sandbox-impl:repl= is the
 interface for sandbox code evaluation.
 
-Each user has automatically her own sandbox package. User-defined
+Each IRC user has automatically her own sandbox package. User-defined
 variables and functions are not shared between users. Users have their
 own REPL variables too: =* ** *** / // /// + ++ +++=. The user-specific
 sandbox package is temporary and is automatically deleted if not used
