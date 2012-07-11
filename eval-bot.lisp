@@ -146,11 +146,11 @@
 (defmethod send ((target (eql :terminal)) message)
   (send *local-stream* message))
 
-(defvar *irc-message-prefix* "")
+(defun bot-message (format-string &rest args)
+  (apply #'format nil format-string args))
 
-(defun irc-fmt (format-string &rest args)
-  (apply #'format nil (concatenate 'string *irc-message-prefix*
-                                   format-string)
+(defun bot-comment (format-string &rest args)
+  (apply #'format nil (concatenate 'string ";; " format-string)
          args))
 
 ;;; Definitions
@@ -400,7 +400,7 @@
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
-                                :contents (irc-fmt ";; EVAL-TIMEOUT"))))
+                                :contents (bot-comment "EVAL-TIMEOUT"))))
         (send :terminal msg)
         (queue-add (send-queue client) msg)))))
 
@@ -434,9 +434,9 @@
            ";; ~Adef-[n] <word>           Delete definition [n] from <word>."
            ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
         strings)
-    (push (irc-fmt (first fmt) *eval-prefix*) strings)
+    (push (bot-message (first fmt) *eval-prefix*) strings)
     (loop :for line :in (rest fmt)
-          :do (push (irc-fmt line *command-prefix*) strings))
+          :do (push (bot-message line *command-prefix*) strings))
     (nreverse strings)))
 
 (defun cmd-help (client target)
@@ -444,7 +444,7 @@
   (loop :for line :in *command-help-strings*
         :for msg := (make-instance 'client-privmsg
                                    :target target
-                                   :contents (irc-fmt line))
+                                   :contents (bot-message line))
         :do (queue-add (send-queue client) msg)))
 
 (defvar *source-code-url* "https://github.com/tlikonen/cl-eval-bot")
@@ -452,8 +452,8 @@
 (defun cmd-source (client target)
   (let* ((new (make-instance 'client-privmsg
                              :target target
-                             :contents (irc-fmt "Bot's source code: ~A"
-                                                *source-code-url*))))
+                             :contents (bot-message "Bot's source code: ~A"
+                                                    *source-code-url*))))
     (send :terminal new)
     (queue-add (send-queue client) new)))
 
@@ -462,8 +462,8 @@
   (let* ((spec (nth-word 1 line))
          (contents (let ((url (clhs-url:clhs spec)))
                      (if url
-                         (irc-fmt "~A (~A)" url (string-upcase spec))
-                         (irc-fmt "No CLHS match for \"~A\"." spec))))
+                         (bot-message "~A (~A)" url (string-upcase spec))
+                         (bot-message "No CLHS match for \"~A\"." spec))))
          (new (make-instance 'client-privmsg :target target
                              :contents contents)))
     (send :terminal new)
@@ -486,10 +486,10 @@
                :tell-intro (make-instance
                             'client-privmsg
                             :target word1
-                            :contents (irc-fmt "User \"~A\" tells: ~A"
-                                               (trivial-irc:prefix-nickname
-                                                (prefix message))
-                                               rest)))))))
+                            :contents (bot-message "User \"~A\" tells: ~A"
+                                                   (trivial-irc:prefix-nickname
+                                                    (prefix message))
+                                                   rest)))))))
 
 (defun cmd-def (client target line)
   (let* ((word (string-downcase (nth-word 1 line)))
@@ -500,14 +500,14 @@
               :for new := (make-instance
                            'client-privmsg
                            :target target
-                           :contents (irc-fmt "~A ~D: ~A" word n def))
+                           :contents (bot-message "~A ~D: ~A" word n def))
               :do (send :terminal new)
               (queue-add (send-queue client) new))
         (let ((new (make-instance 'client-privmsg
                                   :target target
                                   :contents
-                                  (irc-fmt "No definitions for \"~A\"."
-                                           word))))
+                                  (bot-message "No definitions for \"~A\"."
+                                               word))))
           (send :terminal new)
           (queue-add (send-queue client) new)))))
 
@@ -524,7 +524,8 @@
     (let ((new (make-instance
                 'client-privmsg
                 :target target
-                :contents (irc-fmt "Added new definition for \"~A\"." word1))))
+                :contents (bot-message "Added new definition for \"~A\"."
+                                       word1))))
       (send :terminal new)
       (queue-add (send-queue client) new))))
 
@@ -540,23 +541,23 @@
          msg)
 
     (cond ((null def)
-           (setf msg (irc-fmt "No definitions for \"~A\"." word1)))
+           (setf msg (bot-message "No definitions for \"~A\"." word1)))
           ((or (and (not nth) (= (length def) 1))
                (and nth (<= 0 nth (1- (length def)))))
            (definitions-delete word1 (or nth 0))
            (setf msg (if (definitions-read word1)
-                         (irc-fmt
+                         (bot-message
                           "Deleted definition ~D from \"~A\" (~D left)."
                           (1+ nth) word1 (length (definitions-read word1)))
-                         (irc-fmt "Deleted the last definition from \"~A\"."
-                                  word1))))
+                         (bot-message "Deleted the last definition from \"~A\"."
+                                      word1))))
           ((and (not nth)
                 (>= (length def) 2))
-           (setf msg (irc-fmt "There are ~D definitions for \"~A\". ~
+           (setf msg (bot-message "There are ~D definitions for \"~A\". ~
                 Please specify a number." (length def) word1)))
           (nth
-           (setf msg (irc-fmt "There's no definition ~D for \"~A\"."
-                              (1+ nth) word1))))
+           (setf msg (bot-message "There's no definition ~D for \"~A\"."
+                                  (1+ nth) word1))))
 
     (let ((new (make-instance 'client-privmsg
                               :target target
