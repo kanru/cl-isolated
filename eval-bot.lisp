@@ -35,7 +35,8 @@
 (defclass client (trivial-irc:client)
   ((send-queue :reader send-queue :initform (make-instance 'queue))
    (input-queue :reader input-queue :initform (make-instance 'queue))
-   (listen-targets :accessor listen-targets :initarg :listen-targets :initform nil)
+   (listen-targets :accessor listen-targets :initarg :listen-targets
+                   :initform nil)
    (auto-join :accessor auto-join :initarg :auto-join :initform nil)
    (send-queue-thread :accessor send-queue-thread :initform nil)
    (input-queue-thread :accessor input-queue-thread :initform nil)
@@ -707,5 +708,6 @@
                                (client client) prefix arguments)
   (unless (member (symbol-name command) *ignored-server-messages*
                   :test #'string-equal)
-    (send :terminal (make-instance 'server-message :command (symbol-name command)
+    (send :terminal (make-instance 'server-message
+                                   :command (symbol-name command)
                                    :prefix prefix :arguments arguments))))
