@@ -27,8 +27,6 @@
 
 (in-package #:eval-bot)
 
-(definitions-load)
-
 (defparameter *freenode*
   (make-client :server "irc.freenode.net"
                :nickname "clbot"
