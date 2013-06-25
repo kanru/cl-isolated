@@ -55,7 +55,6 @@
 ;;; Messages
 
 (defvar *eval-prefix* ",")
-(defvar *command-prefix* "!")
 (defvar *local-stream* *terminal-io*)
 (defvar *irc-message-max-length* 400)
 
