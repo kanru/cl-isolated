@@ -69,7 +69,6 @@
 (defclass server-privmsg (server-message)
   ((tell-intro :reader tell-intro :initarg :tell-intro :initform nil)))
 (defclass server-privmsg-eval (server-privmsg) nil)
-(defclass server-privmsg-cmd (server-privmsg) nil)
 
 (defclass client-message (message) nil)
 
@@ -326,41 +325,10 @@
 (defun match-prefix-p (prefix string)
   (string= prefix string :end2 (min (length prefix) (length string))))
 
-(defun cmd-tell (client message line)
-  (let ((word1 (nth-word 1 line))
-        (word2 (nth-word 2 line))
-        (rest (nth-value 1 (nth-word 1 line))))
-    (when (and word1 word2
-               (or (match-prefix-p *command-prefix* word2)
-                   (match-prefix-p *eval-prefix* word2)))
-      (send :terminal message)
-      (handle-input-message
-       client (make-instance
-               'server-privmsg
-               :command (command message)
-               :prefix (prefix message)
-               :arguments (list word1 rest)
-               :tell-intro (make-instance
-                            'client-privmsg
-                            :target word1
-                            :contents (bot-message "User \"~A\" tells: ~A"
-                                                   (trivial-irc:prefix-nickname
-                                                    (prefix message))
-                                                   rest)))))))
-
-(defmethod handle-input-message ((client client) (message server-privmsg-cmd))
-  (let ((target (first (arguments message)))
-        (line (subseq (second (arguments message)) (length *command-prefix*))))
-
-    (cond
-      ((and (string-equal "tell" (nth-word 0 line))
-            (not (tell-intro message)))
-       (cmd-tell client message line)))))
-
 (defvar *max-input-queue-length* 10)
 
 (defmethod handle-input-message ((client client) (message server-privmsg))
-  (let* ((contents (second (arguments message))))
+  (let ((contents (second (arguments message))))
     (when (match-prefix-p *eval-prefix* contents)
       (let ((new (make-instance 'server-privmsg-eval
                                 :command (command message)
