@@ -154,98 +154,6 @@
   (apply #'format nil (concatenate 'string ";; " format-string)
          args))
 
-;;; Definitions
-
-(defclass definitions ()
-  ((hash :reader hash :initform (make-hash-table :test #'equal))
-   (lock :reader lock :initform (bt:make-lock "definitions"))
-   (changed :accessor changed :initform nil)))
-
-(defvar *definitions* (make-instance 'definitions))
-
-(defun insert-before-nth (n new-item list)
-  (cond ((null list) (list new-item))
-        ((minusp n) (cons new-item list))
-        (t (loop :for (item . rest) :on list
-                 :for i :upfrom 0
-                 :if (= i n) :collect new-item
-                 :collect item
-                 :if (and (null rest) (> n i)) :collect new-item))))
-
-(defun remove-nth (nth list)
-  (loop :for item :in list
-        :for n :upfrom 0
-        :unless (= n nth) :collect item))
-
-(defun definitions-add (word definition &optional nth)
-  (setf word (string-downcase word))
-  (with-slots (lock hash changed) *definitions*
-    (bt:with-lock-held (lock)
-      (let ((old (gethash word hash)))
-        (setf (gethash word hash)
-              (if nth
-                  (insert-before-nth nth definition old)
-                  (append old (list definition)))
-              changed t)))))
-
-(defun definitions-read (word)
-  (bt:with-lock-held ((lock *definitions*))
-    (gethash (string-downcase word) (hash *definitions*))))
-
-(defun definitions-delete (word nth)
-  (setf word (string-downcase word))
-  (with-slots (lock hash changed) *definitions*
-    (bt:with-lock-held (lock)
-      (let ((old (gethash word hash)))
-        (setf (gethash word hash) (remove-nth nth old)
-              changed t)
-        (unless (gethash word hash)
-          (remhash word hash))))))
-
-(defvar *definitions-pathname*
-  (merge-pathnames #p "definitions.lisp" (user-homedir-pathname)))
-
-(defun definitions-load ()
-  (with-standard-io-syntax
-    (let ((*read-eval* nil))
-      (handler-case
-          (with-open-file (file *definitions-pathname*
-                                :direction :input
-                                :if-does-not-exist :error)
-            (bt:with-lock-held ((lock *definitions*))
-              (loop :for expr := (read file nil)
-                    :while expr
-                    :if (and (consp expr)
-                             (stringp (first expr))
-                             (consp (rest expr))
-                             (every #'stringp (rest expr)))
-                    :do (setf (gethash (first expr) (hash *definitions*))
-                              (rest expr))))
-            (send :terminal "Definitions loaded."))
-
-        (file-error (c)
-          (send :terminal (format nil "~A: ~A" (type-of c) c))
-          (send :terminal "Load definitions failed."))))))
-
-(defun definitions-save ()
-  (with-standard-io-syntax
-    (handler-case
-        (with-open-file (file *definitions-pathname*
-                              :direction :output
-                              :if-exists :rename)
-          (format file ";;; Eval-bot definitions~%")
-          (bt:with-lock-held ((lock *definitions*))
-            (loop :for key :being :each :hash-key :in (hash *definitions*)
-                  :using (hash-value value)
-                  :do (write (cons key value) :stream file)
-                  (terpri file))
-            (setf (changed *definitions*) nil))
-          (send :terminal "Definitions saved."))
-
-      (file-error (c)
-        (send :terminal (format nil "~A: ~A" (type-of c) c))
-        (send :terminal "Save definitions failed.")))))
-
 ;;; General maintainer
 
 (defvar *maintainer-thread* nil)
@@ -259,9 +167,7 @@
         (with-thread ("eval-bot maintainer")
           (loop (sleep *maintainer-interval*)
                 (ignore-errors
-                  (delete-unused-packages))
-                (when (changed *definitions*)
-                  (definitions-save))))))
+                  (delete-unused-packages))))))
 
 ;;; IRC
 
@@ -273,9 +179,7 @@
 (defun irc-quit (client &optional (message *default-quit-message*))
   (queue-clear (input-queue client))
   (queue-clear (send-queue client))
-  (trivial-irc:disconnect client :message message)
-  (when (changed *definitions*)
-    (definitions-save)))
+  (trivial-irc:disconnect client :message message))
 
 (defun irc-join (client channel &optional password)
   (irc-raw client (format nil "JOIN ~A~@[ ~A~]" channel password)))
@@ -429,10 +333,6 @@
            ";; ~Aclhs <term>              Show CLHS URL for <term>."
            ";; ~Ahelp                     This help message."
            ";; ~Asource                   Show the URL to bot's source code."
-           ";; ~Adef <word>               Show definitions for <word>."
-           ";; ~Adef+[n] <word> <def>     Add definition <def> for <word> ~
-                                                (before [n])."
-           ";; ~Adef-[n] <word>           Delete definition [n] from <word>."
            ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
         strings)
     (push (bot-message (first fmt) *eval-prefix*) strings)
@@ -492,80 +392,6 @@
                                                     (prefix message))
                                                    rest)))))))
 
-(defun cmd-def (client target line)
-  (let* ((word (string-downcase (nth-word 1 line)))
-         (definitions (definitions-read word)))
-    (if (and word definitions)
-        (loop :for def :in definitions
-              :for n :upfrom 1
-              :for new := (make-instance
-                           'client-privmsg
-                           :target target
-                           :contents (bot-message "~A ~D: ~A" word n def))
-              :do (send :terminal new)
-              (queue-add (send-queue client) new))
-        (let ((new (make-instance 'client-privmsg
-                                  :target target
-                                  :contents
-                                  (bot-message "No definitions for \"~A\"."
-                                               word))))
-          (send :terminal new)
-          (queue-add (send-queue client) new)))))
-
-(defun cmd-def+ (client target line)
-  (let* ((word0 (nth-word 0 line))
-         (before (let ((sub (subseq word0 #.(length "def+"))))
-                   (if (and (plusp (length sub))
-                            (every #'digit-char-p sub))
-                       (1- (parse-integer sub))
-                       nil)))
-         (word1 (string-downcase (nth-word 1 line)))
-         (def (nth-value 1 (nth-word 1 line))))
-    (definitions-add word1 def before)
-    (let ((new (make-instance
-                'client-privmsg
-                :target target
-                :contents (bot-message "Added new definition for \"~A\"."
-                                       word1))))
-      (send :terminal new)
-      (queue-add (send-queue client) new))))
-
-(defun cmd-def- (client target line)
-  (let* ((word0 (nth-word 0 line))
-         (nth (let ((sub (subseq word0 #.(length "def-"))))
-                (if (and (plusp (length sub))
-                         (every #'digit-char-p sub))
-                    (1- (parse-integer sub))
-                    nil)))
-         (word1 (string-downcase (nth-word 1 line)))
-         (def (definitions-read word1))
-         msg)
-
-    (cond ((null def)
-           (setf msg (bot-message "No definitions for \"~A\"." word1)))
-          ((or (and (not nth) (= (length def) 1))
-               (and nth (<= 0 nth (1- (length def)))))
-           (definitions-delete word1 (or nth 0))
-           (setf msg (if (definitions-read word1)
-                         (bot-message
-                          "Deleted definition ~D from \"~A\" (~D left)."
-                          (1+ nth) word1 (length (definitions-read word1)))
-                         (bot-message "Deleted the last definition from \"~A\"."
-                                      word1))))
-          ((and (not nth)
-                (>= (length def) 2))
-           (setf msg (bot-message "There are ~D definitions for \"~A\". ~
-                Please specify a number." (length def) word1)))
-          (nth
-           (setf msg (bot-message "There's no definition ~D for \"~A\"."
-                                  (1+ nth) word1))))
-
-    (let ((new (make-instance 'client-privmsg
-                              :target target
-                              :contents msg)))
-      (send :terminal new)
-      (queue-add (send-queue client) new))))
-
 (defmethod handle-input-message ((client client) (message server-privmsg-cmd))
   (let ((target (first (arguments message)))
         (line (subseq (second (arguments message)) (length *command-prefix*))))
@@ -587,22 +413,7 @@
 
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
-       (cmd-tell client message line))
-
-      ((and (string-equal "def" (nth-word 0 line))
-            (nth-word 1 line))
-       (send-message-or-tell-intro client message)
-       (cmd-def client target line))
-
-      ((and (match-prefix-p "def+" (string-downcase (nth-word 0 line)))
-            (nth-word 2 line))
-       (send-message-or-tell-intro client message)
-       (cmd-def+ client target line))
-
-      ((and (match-prefix-p "def-" (string-downcase (nth-word 0 line)))
-            (nth-word 1 line))
-       (send-message-or-tell-intro client message)
-       (cmd-def- client target line)))))
+       (cmd-tell client message line)))))
 
 (defvar *max-input-queue-length* 10)
 
