@@ -3,5 +3,5 @@
   :components
   ((:file "sandbox-impl")
    (:file "sandbox-cl" :depends-on ("sandbox-impl"))
-   (:file "general")
-   (:file "eval-bot" :depends-on ("general" "sandbox-impl"))))
+   (:file "common")
+   (:file "eval-bot" :depends-on ("common" "sandbox-impl"))))

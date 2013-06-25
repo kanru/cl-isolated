@@ -16,7 +16,7 @@
 ;; License along with this program. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(defpackage #:general
+(defpackage #:common
   (:use #:cl)
   (:export #:with-thread #:update-sandbox-usage #:delete-unused-packages
            #:delete-all-packages #:list-user-sandbox-packages
@@ -24,7 +24,7 @@
            #:queue #:queue-add #:queue-pop #:queue-clear
            #:queue-length))
 
-(in-package #:general)
+(in-package #:common)
 
 ;;; Threads
 

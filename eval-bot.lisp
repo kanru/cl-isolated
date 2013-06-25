@@ -17,7 +17,7 @@
 ;; <http://www.gnu.org/licenses/>.
 
 (defpackage #:eval-bot
-  (:use #:cl #:general))
+  (:use #:cl #:common))
 
 (in-package #:eval-bot)
 
