@@ -330,7 +330,6 @@
 (defvar *command-help-strings*
   (let ((fmt
          '(";; ~Aexpression ...           Eval expression(s) in your package."
-           ";; ~Aclhs <term>              Show CLHS URL for <term>."
            ";; ~Ahelp                     This help message."
            ";; ~Asource                   Show the URL to bot's source code."
            ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
@@ -355,18 +354,6 @@
                              :target target
                              :contents (bot-message "Bot's source code: ~A"
                                                     *source-code-url*))))
-    (send :terminal new)
-    (queue-add (send-queue client) new)))
-
-
-(defun cmd-clhs (client target line)
-  (let* ((spec (nth-word 1 line))
-         (contents (let ((url (clhs-url:clhs spec)))
-                     (if url
-                         (bot-message "~A (~A)" url (string-upcase spec))
-                         (bot-message "No CLHS match for \"~A\"." spec))))
-         (new (make-instance 'client-privmsg :target target
-                             :contents contents)))
     (send :terminal new)
     (queue-add (send-queue client) new)))
 
@@ -405,11 +392,6 @@
       ((string-equal "source" (nth-word 0 line))
        (send-message-or-tell-intro client message)
        (cmd-source client target))
-
-      ((and (string-equal "clhs" (nth-word 0 line))
-            (nth-word 1 line))
-       (send-message-or-tell-intro client message)
-       (cmd-clhs client target line))
 
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
