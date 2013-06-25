@@ -289,8 +289,8 @@
   (split-sequence
    #\newline
    (format nil "~
-~A<expressions>         Eval <expressions> and print values.~0@*
-~Ahelp                  This help message."
+~A<expressions>  Eval <expressions> and print the values of the last one.~0@*
+~Ahelp           This help message."
            *eval-prefix*)
    :remove-empty-subseqs t))
 
