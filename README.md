@@ -1,7 +1,7 @@
 Eval-bot
 ========
 
-**An IRC bot for Common Lisp code evaluation and help**
+**An IRC bot for Common Lisp code evaluation**
 
 
 Introduction
@@ -9,17 +9,14 @@ Introduction
 
 _Eval-bot_ is an Internet Relay Chat robot program (a bot) which aims to
 help discussions related to the Common Lisp language. The bot sits on an
-IRC channel and can act on specific command messages. Command messages
-can evaluate Common Lisp expressions and send their return value to IRC
-channel or user. Command messages can also request for information, such
-as URLs to the [Common Lisp HyperSpec][CLHS].
+IRC channel and can evaluate Common Lisp expressions and send their
+return value to IRC channel or user.
 
 The bot program is implemented in the Common Lisp language. It must be
 used with an implementation that supports threads through
 [Bordeaux Threads][BT] library. Minor parts in the bot's start and
 setting scripts use features specific to [SBCL][] implementation.
 
-[CLHS]: http://www.lispworks.com/documentation/HyperSpec/Front/
 [BT]:   http://common-lisp.net/project/bordeaux-threads/
 [SBCL]: http://www.sbcl.org/
 
@@ -37,10 +34,10 @@ Sandbox
 -------
 
 Common Lisp expressions from an IRC channel are evaluated in a sandbox
-environment which provides only a subset of Common Lisp features. In
-general, many features related to symbols, packages and operating system
-have been disabled. The sandbox is implemented in packages
-`SANDBOX-IMPL` and `SANDBOX-CL`. Function `sandbox-impl:repl` is the
+environment which provides a subset of Common Lisp features. In general,
+many features related to symbols, packages and operating system have
+been disabled. The sandbox is implemented in packages `SANDBOX-IMPL`,
+`SANDBOX-CL` and `SANDBOX-EXTRA`. Function `sandbox-impl:repl` is the
 interface for sandbox code evaluation.
 
 Each IRC user has automatically her own sandbox package. User-defined
