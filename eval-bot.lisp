@@ -307,21 +307,6 @@
         (send :terminal msg)
         (queue-add (send-queue client) msg)))))
 
-(defun nth-word (n string)
-  (let ((words (split-sequence:split-sequence
-                #\Space string :remove-empty-subseqs nil)))
-    (loop :with word-number := -1
-          :for (word . rest) :on words
-          :if (plusp (length word)) :do (incf word-number)
-          :if (and (plusp (length word)) (= n word-number))
-          :return
-          (values word (string-left-trim
-                        " " (with-output-to-string (s)
-                              (loop :for (item . rest) :on rest
-                                    :do (princ item s)
-                                    :if rest :do (princ #\Space s)))))
-          :finally (return (values nil nil)))))
-
 (defun match-prefix-p (prefix string)
   (string= prefix string :end2 (min (length prefix) (length string))))
 
