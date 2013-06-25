@@ -21,16 +21,10 @@
 
 (cl:declaim (cl:optimize (cl:safety 3)))
 
-(cl:loop
- :for func :in '(help)
- :do
- (cl:setf (cl:get func :sandbox-locked) cl:t)
- (cl:export (cl:list func))
- (cl:eval
-  `(cl:defun ,func (cl:&rest args)
-     (cl:signal
-      'common:extra-command
-      :command (cl:symbol-name ',func)
-      :arguments args))))
+(cl:define-symbol-macro help
+    (cl:signal 'common:extra-command
+               :command "help"
+               :arguments cl:nil))
 
-(cl:define-symbol-macro help (help))
+(cl:setf (cl:get 'help :sandbox-locked) cl:t)
+(cl:export 'help)
