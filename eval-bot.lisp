@@ -295,14 +295,22 @@
     (sandbox-init sandbox-name)
 
     (with-thread ("eval and print" :timeout *eval-timeout*)
-      (let ((string (clean-string (with-output-to-string (stream)
-                                    (sandbox-repl sandbox-name
-                                                  contents stream)))))
-        (when (plusp (length string))
-          (let ((msg (make-instance 'client-privmsg :target target
-                                    :contents string)))
-            (send :terminal msg)
-            (queue-add (send-queue client) msg))))
+      (handler-case
+          (let ((string (clean-string (with-output-to-string (stream)
+                                        (sandbox-repl sandbox-name
+                                                      contents stream)))))
+            (when (plusp (length string))
+              (let ((msg (make-instance 'client-privmsg :target target
+                                        :contents string)))
+                (send :terminal msg)
+                (queue-add (send-queue client) msg))))
+
+        (common:extra-command (c)
+          (with-thread ("extra command")
+            (funcall (intern (format nil "~:@(EXTRA-CMD-~A~)"
+                                     (common:command c)))
+                     client target (common:arguments c)))))
+
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target

@@ -134,7 +134,7 @@
 (defun reset ()
   (ignore-errors
     (delete-package *sandbox*))
-  (make-package *sandbox* :use '(#:sandbox-cl))
+  (make-package *sandbox* :use '(#:sandbox-cl #:sandbox-extra))
   (loop :for name :in '("+" "++" "+++" "*" "**" "***" "/" "//" "///" "-")
         :do (eval `(defparameter ,(intern name *sandbox*) nil)))
   (loop :for fn :in '(+ - * /)
@@ -173,6 +173,9 @@
                 (loop (setf values (multiple-value-list
                                     (eval (prog1 (setf form (sread s))
                                             (ssetq "-" form)))))))
+
+            (common:extra-command (c)
+              (signal c))
 
             (all-read ()
               (sandbox-print values stream))

@@ -22,9 +22,14 @@
            #:delete-all-packages #:list-user-sandbox-packages
            #:user-to-sandbox-name
            #:queue #:queue-add #:queue-pop #:queue-clear
-           #:queue-length))
+           #:queue-length #:extra-command #:command #:arguments))
 
 (in-package #:common)
+
+
+(define-condition extra-command ()
+  ((command :reader command :initarg :command)
+   (arguments :reader arguments :initarg :arguments)))
 
 ;;; Threads
 
