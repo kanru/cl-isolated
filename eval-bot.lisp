@@ -17,7 +17,10 @@
 ;; <http://www.gnu.org/licenses/>.
 
 (defpackage #:eval-bot
-  (:use #:cl #:common))
+  (:use #:cl)
+  (:import-from #:common
+                #:queue #:queue-add #:queue-pop #:queue-clear #:queue-length
+                #:with-thread))
 
 (in-package #:eval-bot)
 
@@ -263,12 +266,12 @@
                                 string)))
 
 (defun sandbox-repl (sandbox-name string &optional (stream *standard-output*))
-  (update-sandbox-usage sandbox-name)
+  (common:update-sandbox-usage sandbox-name)
   (let ((sandbox-impl:*sandbox* sandbox-name))
     (sandbox-impl:repl string stream)))
 
 (defun sandbox-init (sandbox-name)
-  (update-sandbox-usage sandbox-name)
+  (common:update-sandbox-usage sandbox-name)
   (unless (find-package sandbox-name)
     (let ((sandbox-impl:*sandbox* sandbox-name))
       (sandbox-impl:reset))))
@@ -286,7 +289,7 @@
   (let ((target (first (arguments message)))
         (contents (subseq (second (arguments message))
                           (length *eval-prefix*)))
-        (sandbox-name (user-to-sandbox-name (prefix message))))
+        (sandbox-name (common:user-to-sandbox-name (prefix message))))
 
     (send-message-or-tell-intro client message)
     (sandbox-init sandbox-name)
