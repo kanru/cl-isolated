@@ -327,25 +327,6 @@
 (defun match-prefix-p (prefix string)
   (string= prefix string :end2 (min (length prefix) (length string))))
 
-(defvar *command-help-strings*
-  (let ((fmt
-         '(";; ~Aexpression ...           Eval expression(s) in your package."
-           ";; ~Ahelp                     This help message."
-           ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
-        strings)
-    (push (bot-message (first fmt) *eval-prefix*) strings)
-    (loop :for line :in (rest fmt)
-          :do (push (bot-message line *command-prefix*) strings))
-    (nreverse strings)))
-
-(defun cmd-help (client target)
-  (send :terminal (format nil "[Sending help strings to ~A.]" target))
-  (loop :for line :in *command-help-strings*
-        :for msg := (make-instance 'client-privmsg
-                                   :target target
-                                   :contents (bot-message line))
-        :do (queue-add (send-queue client) msg)))
-
 (defun cmd-tell (client message line)
   (let ((word1 (nth-word 1 line))
         (word2 (nth-word 2 line))
@@ -373,11 +354,6 @@
         (line (subseq (second (arguments message)) (length *command-prefix*))))
 
     (cond
-
-      ((string-equal "help" (nth-word 0 line))
-       (send-message-or-tell-intro client message)
-       (cmd-help client target))
-
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
        (cmd-tell client message line)))))
@@ -385,14 +361,10 @@
 (defvar *max-input-queue-length* 10)
 
 (defmethod handle-input-message ((client client) (message server-privmsg))
-  (let* ((contents (second (arguments message)))
-         (type (cond ((match-prefix-p *eval-prefix* contents)
-                      'server-privmsg-eval)
-                     ((match-prefix-p *command-prefix* contents)
-                      'server-privmsg-cmd))))
-
-    (when type
-      (let ((new (make-instance type :command (command message)
+  (let* ((contents (second (arguments message))))
+    (when (match-prefix-p *eval-prefix* contents)
+      (let ((new (make-instance 'server-privmsg-eval
+                                :command (command message)
                                 :prefix (prefix message)
                                 :arguments (arguments message)
                                 :tell-intro (tell-intro message))))
