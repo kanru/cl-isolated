@@ -20,7 +20,8 @@
   (:use #:cl)
   (:import-from #:common
                 #:queue #:queue-add #:queue-pop #:queue-clear #:queue-length
-                #:with-thread))
+                #:with-thread)
+  (:import-from #:split-sequence #:split-sequence))
 
 (in-package #:eval-bot)
 
