@@ -284,6 +284,27 @@
                (queue-add (send-queue client) intro))
         (send :terminal message))))
 
+
+(defvar *help-strings*
+  (split-sequence
+   #\newline
+   (format nil "~
+~A<expressions>         Eval <expressions> and print values.~0@*
+~Ahelp                  This help message."
+           *eval-prefix*)
+   :remove-empty-subseqs t))
+
+
+(defun extra-cmd-help (client target args)
+  (declare (ignore args))
+  (send :terminal (format nil "[Sending help to ~A]" target))
+  (loop :for line :in *help-strings*
+        :for msg := (make-instance 'client-privmsg
+                                   :target target
+                                   :contents (bot-comment "~A" line))
+        :do (queue-add (send-queue client) msg)))
+
+
 (defgeneric handle-input-message (client message))
 
 (defmethod handle-input-message ((client client) (message server-privmsg-eval))

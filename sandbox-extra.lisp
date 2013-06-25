@@ -22,7 +22,7 @@
 (cl:declaim (cl:optimize (cl:safety 3)))
 
 (cl:loop
- :for func :in '()
+ :for func :in '(help)
  :do
  (cl:setf (cl:get func :sandbox-locked) cl:t)
  (cl:export (cl:list func))
@@ -32,3 +32,5 @@
       'common:extra-command
       :command (cl:symbol-name ',func)
       :arguments args))))
+
+(cl:define-symbol-macro help (help))
