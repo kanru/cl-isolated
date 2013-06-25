@@ -331,7 +331,6 @@
   (let ((fmt
          '(";; ~Aexpression ...           Eval expression(s) in your package."
            ";; ~Ahelp                     This help message."
-           ";; ~Asource                   Show the URL to bot's source code."
            ";; ~Atell <target> <command>  Send <command>'s output to <target>."))
         strings)
     (push (bot-message (first fmt) *eval-prefix*) strings)
@@ -346,16 +345,6 @@
                                    :target target
                                    :contents (bot-message line))
         :do (queue-add (send-queue client) msg)))
-
-(defvar *source-code-url* "https://github.com/tlikonen/cl-eval-bot")
-
-(defun cmd-source (client target)
-  (let* ((new (make-instance 'client-privmsg
-                             :target target
-                             :contents (bot-message "Bot's source code: ~A"
-                                                    *source-code-url*))))
-    (send :terminal new)
-    (queue-add (send-queue client) new)))
 
 (defun cmd-tell (client message line)
   (let ((word1 (nth-word 1 line))
@@ -388,10 +377,6 @@
       ((string-equal "help" (nth-word 0 line))
        (send-message-or-tell-intro client message)
        (cmd-help client target))
-
-      ((string-equal "source" (nth-word 0 line))
-       (send-message-or-tell-intro client message)
-       (cmd-source client target))
 
       ((and (string-equal "tell" (nth-word 0 line))
             (not (tell-intro message)))
