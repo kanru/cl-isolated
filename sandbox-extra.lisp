@@ -34,11 +34,14 @@
     (cl:signal 'common:extra-command :command "help" :arguments cl:nil))
 
 (cl:defmacro tell (nick sexp)
-  `(cl:let* ((cl:*print-case* :downcase)
-             (form (sandbox-cl:prin1-to-string ',sexp))
-             (values (cl:with-output-to-string (stream)
-                       (sandbox-impl:repl form stream))))
-     ;; FIXME: When nick is not a string (or a string designator?) maybe
-     ;; send error to the original sender.
-     (cl:signal 'common:extra-command
-                :command "tell" :arguments (cl:list ',nick form values))))
+  `(cl:if (cl:or (cl:stringp ',nick)
+                 (cl:symbolp ',nick)
+                 (cl:characterp ',nick))
+          (cl:let* ((form (cl:let ((cl:*print-case* :downcase))
+                            (sandbox-cl:prin1-to-string ',sexp)))
+                    (values (cl:with-output-to-string (stream)
+                              (sandbox-impl:repl form stream))))
+            (cl:signal 'common:extra-command :command "tell"
+                       :arguments (cl:list (cl:string ',nick) form values)))
+          (cl:signal 'common:extra-command :command "tell-error"
+                     :arguments cl:nil)))

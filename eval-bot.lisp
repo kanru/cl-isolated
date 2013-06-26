@@ -308,6 +308,13 @@
           (send :terminal msg)
           (queue-add (send-queue client) msg))))
 
+(defun extra-cmd-tell-error (client user)
+  (queue-add (send-queue client)
+             (make-instance
+              'client-privmsg :target user
+              :contents (bot-message "In TELL macro the \"nick\" argument ~
+                                must be a string (designator)."))))
+
 
 (defgeneric handle-input-message (client message))
 
@@ -339,7 +346,9 @@
               (cond ((equalp cmd "help")
                      (extra-cmd-help client target))
                     ((equalp cmd "tell")
-                     (extra-cmd-tell client user args)))))))
+                     (extra-cmd-tell client user args))
+                    ((equalp cmd "tell-error")
+                     (extra-cmd-tell-error client user)))))))
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
