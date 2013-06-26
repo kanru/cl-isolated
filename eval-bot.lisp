@@ -70,8 +70,7 @@
    (prefix :reader prefix :initarg :prefix)
    (arguments :reader arguments :initarg :arguments)))
 
-(defclass server-privmsg (server-message)
-  ((tell-intro :reader tell-intro :initarg :tell-intro :initform nil)))
+(defclass server-privmsg (server-message) nil)
 (defclass server-privmsg-eval (server-privmsg) nil)
 
 (defclass client-message (message) nil)
@@ -277,26 +276,19 @@
     (let ((sandbox-impl:*sandbox* sandbox-name))
       (sandbox-impl:reset))))
 
-(defun send-message-or-tell-intro (client message)
-  (let ((intro (tell-intro message)))
-    (if intro
-        (progn (send :terminal intro)
-               (queue-add (send-queue client) intro))
-        (send :terminal message))))
-
 
 (defvar *help-strings*
   (split-sequence
    #\newline
    (format nil "~
-~A<expressions>  Eval <expressions> and print the values of the last one.~0@*
-~Ahelp           This help message."
+~A<forms>               Eval <forms> and print the values of the last one.~0@*
+~Ahelp                  This help message.~0@*
+~A(tell \"nick\" <form>)  Eval <form> and send it and its value to nick."
            *eval-prefix*)
    :remove-empty-subseqs t))
 
 
-(defun extra-cmd-help (client target args)
-  (declare (ignore args))
+(defun extra-cmd-help (client target)
   (send :terminal (format nil "[Sending help to ~A]" target))
   (loop :for line :in *help-strings*
         :for msg := (make-instance 'client-privmsg
@@ -305,15 +297,28 @@
         :do (queue-add (send-queue client) msg)))
 
 
+(defun extra-cmd-tell (client user args)
+  (destructuring-bind (nick form value) args
+    (loop :for string :in (list (bot-message "Nick \"~A\" tells: ~A" user
+                                             (clean-string form))
+                                (bot-message "~A" (clean-string value)))
+          :for msg := (make-instance 'client-privmsg :target (clean-string nick)
+                                     :contents string)
+          :do
+          (send :terminal msg)
+          (queue-add (send-queue client) msg))))
+
+
 (defgeneric handle-input-message (client message))
 
 (defmethod handle-input-message ((client client) (message server-privmsg-eval))
   (let ((target (first (arguments message)))
+        (user (trivial-irc:prefix-nickname (prefix message)))
         (contents (subseq (second (arguments message))
                           (length *eval-prefix*)))
         (sandbox-name (common:user-to-sandbox-name (prefix message))))
 
-    (send-message-or-tell-intro client message)
+    (send :terminal message)
     (sandbox-init sandbox-name)
 
     (with-thread ("eval and print" :timeout *eval-timeout*)
@@ -329,10 +334,12 @@
 
         (common:extra-command (c)
           (with-thread ("extra command")
-            (funcall (intern (format nil "~:@(EXTRA-CMD-~A~)"
-                                     (common:command c)))
-                     client target (common:arguments c)))))
-
+            (let ((cmd (common:command c))
+                  (args (common:arguments c)))
+              (cond ((equalp cmd "help")
+                     (extra-cmd-help client target))
+                    ((equalp cmd "tell")
+                     (extra-cmd-tell client user args)))))))
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
@@ -351,13 +358,10 @@
       (let ((new (make-instance 'server-privmsg-eval
                                 :command (command message)
                                 :prefix (prefix message)
-                                :arguments (arguments message)
-                                :tell-intro (tell-intro message))))
-        (cond ((tell-intro new)
-               (queue-add (input-queue client) new))
-              ((< (queue-length (input-queue client))
-                  *max-input-queue-length*)
-               (queue-add (input-queue client) new)))))))
+                                :arguments (arguments message))))
+        (when (< (queue-length (input-queue client))
+                 *max-input-queue-length*)
+          (queue-add (input-queue client) new))))))
 
 (defvar *send-queue-interval* .5)
 (defvar *input-queue-interval* .1)

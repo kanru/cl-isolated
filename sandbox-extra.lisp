@@ -28,7 +28,19 @@
                           (cl:export (cl:list ',s))))))
 
 (export-and-lock
-  help)
+  help tell)
 
 (cl:define-symbol-macro help
     (cl:signal 'common:extra-command :command "help" :arguments cl:nil))
+
+(cl:defmacro tell (nick sexp)
+  (cl:let ((values (cl:gensym "VALUES"))
+           (form (cl:gensym "FORM"))
+           (stream (cl:gensym "STREAM")))
+    `(cl:let* ((cl:*print-case* :downcase)
+               (,form (sandbox-cl:prin1-to-string ',sexp))
+               (,values (cl:with-output-to-string (,stream)
+                          (sandbox-impl:repl ,form ,stream))))
+       (cl:signal 'common:extra-command
+                  :command "tell"
+                  :arguments (cl:list ,nick ,form ,values)))))
