@@ -144,4 +144,3 @@
     (setf (queue-first queue) nil
           (queue-last queue) nil
           (queue-length queue) 0)))
-
