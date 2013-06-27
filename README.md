@@ -7,10 +7,10 @@ Eval-bot
 Introduction
 ------------
 
-_Eval-bot_ is an Internet Relay Chat robot program (a bot) which aims to
-help discussions related to the Common Lisp language. The bot sits on an
-IRC channel and can evaluate Common Lisp expressions and send their
-return value to IRC channel or user.
+_Eval-bot_ is an Internet Relay Chat (IRC) robot program (a bot) which
+aims to help discussions related to the Common Lisp language. The bot
+sits on an IRC channel and can evaluate Common Lisp expressions and send
+their return value to IRC channel or user.
 
 The bot program is implemented in the Common Lisp language. It must be
 used with an implementation that supports threads through
@@ -27,7 +27,7 @@ IRC
 Common Lisp package `EVAL-BOT` contains the IRC part of the program.
 Function `make-client` creates a client object which can be used with
 IRC-related functions, such as `irc-connect`, `irc-join`, `irc-quit`
-etc. Here's a short example on how to run the bot.
+etc. Here is an example on how to run the bot.
 
  1. Start the bot from shell.
 
@@ -73,13 +73,15 @@ etc. Here's a short example on how to run the bot.
 
         mynick> ,(values 1 2 3)
         eval-bot> => 1, 2, 3
+        mynick> ,help
+        eval-bot> [Some information.]
 
-    The comma `,` is the default prefix for code evaluation. It can be
+    Comma `,` is the default prefix for code evaluation. It can be
     changed with variable `*eval-prefix*`. Not all Common Lisp's
     features are supported. See the Sandbox section below.
 
 If you want to make the startup process automatic you could create a
-lisp file for your commands and start the bot with `./start-bot-sbcl
+Lisp file for your commands and start the bot with `./start-bot-sbcl
 --load mysettings.lisp`.
 
 
