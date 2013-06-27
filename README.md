@@ -25,26 +25,81 @@ IRC
 ---
 
 Common Lisp package `EVAL-BOT` contains the IRC part of the program.
-Function `make-client` creates a client object which is used with
+Function `make-client` creates a client object which can be used with
 IRC-related functions, such as `irc-connect`, `irc-join`, `irc-quit`
-etc.
+etc. Here's a short example on how to run the bot.
+
+ 1. Start the bot from shell.
+
+        $ ./start-bot-sbcl
+
+ 2. Use the SBCL's REPL from the terminal or connect to the Swank server
+    with Emacs's Slime:
+
+        M-x slime-connect RET 127.0.0.1 RET 50000 RET
+
+ 3. Switch to the `EVAL-BOT` package.
+
+        (in-package #:eval-bot)
+
+ 4. Create a client object for connections.
+
+        (defparameter *client*
+          (make-client :server "some.server.org"
+                       :nickname "eval-bot"
+                       :username "eval-bot"
+                       :realname "Common Lisp Eval Bot"
+                       :listen-targets '("#mychannel")
+                       :auto-join '("#mychannel")))
+
+    There is `*freenode*` client already. If you choose to use it, you
+    may just change some of the slots:
+
+        (setf (nickname *freenode*) "eval-bot")
+        (push "#mychannel" (listen-targets *freenode*))
+        (push "#mychannel" (auto-join *freenode*))
+
+ 5. Connect.
+
+        (irc-connect *client*)
+
+    The bot will connect and automatically join to `#mychannel`. You can
+    also use `(irc-join client channel &optional password)` function.
+    Functions with `irc-` prefix are the IRC commands for the server.
+    Raw IRC protocol commands can be sent with `(irc-raw client
+    raw-message)`.
+
+ 6. Use the bot!
+
+        mynick> ,(values 1 2 3)
+        eval-bot> => 1, 2, 3
+
+    The comma `,` is the default prefix for code evaluation. It can be
+    changed with variable `*eval-prefix*`. Not all Common Lisp's
+    features are supported. See the Sandbox section below.
+
+If you want to make the startup process automatic you could create a
+lisp file for your commands and start the bot with `./start-bot-sbcl
+--load mysettings.lisp`.
 
 
 Sandbox
 -------
 
-Common Lisp expressions from an IRC channel are evaluated in a sandbox
-environment which provides a subset of Common Lisp features. In general,
-many features related to symbols, packages and operating system have
-been disabled. The sandbox is implemented in packages `SANDBOX-IMPL`,
-`SANDBOX-CL` and `SANDBOX-EXTRA`. Function `sandbox-impl:repl` is the
-interface for sandbox code evaluation.
+Common Lisp expressions from IRC channels are evaluated in a restricted
+sandbox environment which provides a subset of Common Lisp's features.
+In general, many features related to symbols, packages and operating
+system have been disabled. Some standard functions and macros have been
+replaced with safer versions. The sandbox is implemented in packages
+`SANDBOX-IMPL`, `SANDBOX-CL` and `SANDBOX-EXTRA`. Function
+`sandbox-impl:repl` is the interface for sandbox code evaluation.
 
-Each IRC user has automatically her own sandbox package. User-defined
-variables and functions are not shared between users. Users have their
-own REPL variables too: `* ** *** / // /// + ++ +++`. The user-specific
-sandbox package is temporary and is automatically deleted if not used
-for a while.
+A single eval message from IRC results in a single answer message from
+the bot. Each IRC user has automatically her own sandbox package. So
+user-defined variables and functions are not shared between users. Users
+have their own REPL variables too: `* ** *** / // /// + ++ +++`. The
+user-specific sandbox package is temporary and is automatically deleted
+if not used for a while.
 
 
 The source code
