@@ -363,14 +363,14 @@
 
 (defmethod handle-input-message ((client client) (message server-privmsg))
   (let ((contents (second (arguments message))))
-    (when (match-prefix-p *eval-prefix* contents)
-      (let ((new (make-instance 'server-privmsg-eval
+    (when (and (match-prefix-p *eval-prefix* contents)
+               (< (queue-length (input-queue client))
+                  *max-input-queue-length*))
+      (queue-add (input-queue client)
+                 (make-instance 'server-privmsg-eval
                                 :command (command message)
                                 :prefix (prefix message)
-                                :arguments (arguments message))))
-        (when (< (queue-length (input-queue client))
-                 *max-input-queue-length*)
-          (queue-add (input-queue client) new))))))
+                                :arguments (arguments message))))))
 
 (defvar *send-queue-interval* .5)
 (defvar *input-queue-interval* .1)
