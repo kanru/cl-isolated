@@ -168,7 +168,7 @@
         (with-thread ("eval-bot maintainer")
           (loop (sleep *maintainer-interval*)
                 (ignore-errors
-                  (delete-unused-packages))))))
+                  (common:delete-unused-packages))))))
 
 ;;; IRC
 
