@@ -33,10 +33,16 @@ etc. Here is an example on how to run the bot.
 
         $ ./start-bot-sbcl
 
- 2. Use the SBCL's REPL from the terminal or connect to the Swank server
-    with Emacs's Slime:
+ 2. Use SBCL's REPL from the terminal or connect to the Swank server
+    with Emacs's Slime.
 
         M-x slime-connect RET 127.0.0.1 RET 50000 RET
+
+    If you use Slime you probably want to see bot's messages in the
+    Slime buffer. Bot's message stream can be changed with variable
+    `eval-bot::*local-stream*`. Write this in the Slime REPL buffer:
+
+        (setf eval-bot::*local-stream* *standard-output*)
 
  3. Switch to the `EVAL-BOT` package.
 
@@ -71,10 +77,10 @@ etc. Here is an example on how to run the bot.
 
  6. Use the bot!
 
-        mynick> ,(values 1 2 3)
+        somenick> ,(values 1 2 3)
         eval-bot> => 1, 2, 3
-        mynick> ,help
-        eval-bot> [Some information.]
+        somenick> ,help
+        eval-bot> [bot prints information]
 
     Comma `,` is the default prefix for code evaluation. It can be
     changed with variable `*eval-prefix*`. Not all Common Lisp's
