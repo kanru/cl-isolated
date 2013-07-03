@@ -281,9 +281,9 @@
   (split-sequence
    #\newline
    (format nil "~
-~A<forms>  Eval <forms> and print the values of the last one.~0@*  /  ~
-~Ahelp  This help message.~0@*  /  ~
-~A(tell \"nick\" <form>)  Eval <form> and send the <form> and its value to nick."
+~A<forms> = Eval <forms> and print the values of the last one.~0@*  /  ~
+~Ahelp = This help message.~0@*  /  ~
+~A(tell \"nick\" <form>) = Eval <form> and send the <form> and its value to nick."
            *eval-prefix*)
    :remove-empty-subseqs t))
 
