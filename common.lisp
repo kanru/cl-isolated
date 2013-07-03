@@ -101,8 +101,6 @@
                  (list-all-packages)
                  :key #'package-name))
 
-(defvar *sandbox-package-prefix* "SANDBOX/")
-
 (defun user-to-sandbox-name (user)
   (let ((excl (position #\! user)))
     (string-upcase (concatenate 'string
