@@ -319,7 +319,7 @@
                 like a valid nick." nick))))
                 (setf msgs
                       (loop :for string
-                            :in (list (bot-message "Nick \"~A\" tells: ~A" user
+                            :in (list (bot-comment "Nick \"~A\" tells: ~A" user
                                                    (clean-string form))
                                       (bot-message "~A" (clean-string value)))
                             :collect (make-instance 'client-privmsg
