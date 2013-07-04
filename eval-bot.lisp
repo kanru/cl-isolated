@@ -285,6 +285,12 @@
                 *eval-prefix*)))
 
 
+(defun valid-nick-p (string)
+  (loop :for char :across string
+        :always (or (alphanumericp char)
+                    (find char "_-\\[]{}^`|"))))
+
+
 (defun extra-cmd-help (client target)
   (send :terminal (format nil "[Sending help to ~A]" target))
   (loop :for line :in *help-strings*
@@ -306,11 +312,11 @@
                 argument must be a string (designator)."))))
           (progn
             (setf nick (string nick))
-            (if (notevery #'alphanumericp nick)
+            (if (not (valid-nick-p nick))
                 (setf msgs (list (make-instance
                                   'client-privmsg :target user
-                                  :contents (bot-comment "In TELL macro the ~
-                NICK argument must consist of ALPHANUMERICP characters."))))
+                                  :contents (bot-comment "\"~A\" doesn't look ~
+                like a valid nick." nick))))
                 (setf msgs
                       (loop :for string
                             :in (list (bot-message "Nick \"~A\" tells: ~A" user
