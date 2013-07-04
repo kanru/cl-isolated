@@ -33,15 +33,11 @@
 (cl:define-symbol-macro help
     (cl:signal 'common:extra-command :command "help" :arguments cl:nil))
 
-(cl:defmacro tell (nick sexp)
-  `(cl:if (cl:or (cl:stringp ',nick)
-                 (cl:symbolp ',nick)
-                 (cl:characterp ',nick))
-          (cl:let* ((form (cl:let ((cl:*print-case* :downcase))
-                            (sandbox-cl:prin1-to-string ',sexp)))
-                    (values (cl:with-output-to-string (stream)
-                              (sandbox-impl:repl form stream))))
-            (cl:signal 'common:extra-command :command "tell"
-                       :arguments (cl:list (cl:string ',nick) form values)))
-          (cl:signal 'common:extra-command :command "tell-error"
-                     :arguments cl:nil)))
+(cl:defmacro tell (nick sexp cl:&rest ignored)
+  (cl:declare (cl:ignore ignored))
+  `(cl:let* ((form (cl:let ((cl:*print-case* :downcase))
+                     (sandbox-cl:prin1-to-string ',sexp)))
+             (values (cl:with-output-to-string (stream)
+                       (sandbox-impl:repl form stream))))
+     (cl:signal 'common:extra-command :command "tell"
+                :arguments (cl:list ',nick form values))))

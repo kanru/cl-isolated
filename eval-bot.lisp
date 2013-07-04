@@ -299,21 +299,34 @@
 
 (defun extra-cmd-tell (client user args)
   (destructuring-bind (nick form value) args
-    (loop :for string :in (list (bot-message "Nick \"~A\" tells: ~A" user
-                                             (clean-string form))
-                                (bot-message "~A" (clean-string value)))
-          :for msg := (make-instance 'client-privmsg :target (clean-string nick)
-                                     :contents string)
-          :do
-          (send :terminal msg)
-          (queue-add (send-queue client) msg))))
+    (let ((msgs nil))
+      (if (not (or (stringp nick)
+                   (symbolp nick)
+                   (characterp nick)))
+          (setf msgs (list (make-instance
+                            'client-privmsg :target user
+                            :contents (bot-comment "In TELL macro the NICK ~
+                argument must be a string (designator)."))))
+          (progn
+            (setf nick (string nick))
+            (if (notevery #'alphanumericp nick)
+                (setf msgs (list (make-instance
+                                  'client-privmsg :target user
+                                  :contents (bot-comment "In TELL macro the ~
+                NICK argument must consist of ALPHANUMERICP characters."))))
+                (setf msgs
+                      (loop :for string
+                            :in (list (bot-message "Nick \"~A\" tells: ~A" user
+                                                   (clean-string form))
+                                      (bot-message "~A" (clean-string value)))
+                            :collect (make-instance 'client-privmsg
+                                                    :target nick
+                                                    :contents string))))))
 
-(defun extra-cmd-tell-error (client user)
-  (queue-add (send-queue client)
-             (make-instance
-              'client-privmsg :target user
-              :contents (bot-message "In TELL macro the \"nick\" argument ~
-                                must be a string (designator)."))))
+      (loop :for msg :in msgs
+            :do
+            (send :terminal msg)
+            (queue-add (send-queue client) msg)))))
 
 
 (defgeneric handle-input-message (client message))
@@ -346,9 +359,7 @@
               (cond ((equalp cmd "help")
                      (extra-cmd-help client target))
                     ((equalp cmd "tell")
-                     (extra-cmd-tell client user args))
-                    ((equalp cmd "tell-error")
-                     (extra-cmd-tell-error client user)))))))
+                     (extra-cmd-tell client user args)))))))
 
       :timeout
       (let ((msg (make-instance 'client-privmsg :target target
