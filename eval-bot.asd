@@ -1,5 +1,6 @@
 (defsystem :eval-bot
-  :depends-on (:bordeaux-threads :trivial-irc :alexandria :split-sequence)
+  :depends-on (:bordeaux-threads :trivial-irc :alexandria :split-sequence
+                                 :babel)
   :components
   ((:file "sandbox-impl" :depends-on ("common"))
    (:file "sandbox-extra" :depends-on ("common" "sandbox-impl" "sandbox-cl"))
