@@ -60,7 +60,7 @@
 
 (defvar *eval-prefix* ",")
 (defvar *local-stream* *terminal-io*)
-(defvar *irc-message-max-length* 400)
+(defvar *irc-message-max-length* 480)
 
 (defclass message ()
   ((timestamp :reader timestamp :initform (get-universal-time))))
@@ -104,12 +104,16 @@
             year month date hour min sec)))
 
 (defun truncate-message (string)
-  (if (> (or (ignore-errors (babel:string-size-in-octets string))
-             (length string))
-         *irc-message-max-length*)
-      (concatenate 'string (subseq string 0 (- *irc-message-max-length* 3))
-                   "...")
-      string))
+  (if (<= (or (ignore-errors (babel:string-size-in-octets string))
+              (length string))
+          *irc-message-max-length*)
+      string
+      (loop :for i :from 1 :upto (length string)
+            :for lisp := (subseq string 0 i)
+            :if (> (or (ignore-errors (babel:string-size-in-octets lisp))
+                       (length lisp))
+                   *irc-message-max-length*)
+            :return (concatenate 'string (subseq string 0 (1- i)) "..."))))
 
 (defgeneric send (context message))
 
