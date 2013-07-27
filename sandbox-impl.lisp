@@ -35,15 +35,15 @@
   (:report "Sandbox error."))
 
 (define-condition unsupported-type (sandbox-error)
-  ((type :initarg :type))
+  ((type :initarg :type :reader unsupported-type))
   (:report (lambda (c s)
-             (format s "Type ~A is not supported." (slot-value c 'type)))))
+             (format s "Type ~A is not supported." (unsupported-type c)))))
 
 (define-condition disabled-feature (sandbox-error)
-  ((name :initarg :name))
+  ((name :initarg :name :reader disabled-feature-name))
   (:report (lambda (c s)
              (format s "The feature ~A is disabled."
-                     (slot-value c 'name)))))
+                     (disabled-feature-name c)))))
 
 (define-condition circular-list (sandbox-error) nil
   (:report "Circular list was detected."))
