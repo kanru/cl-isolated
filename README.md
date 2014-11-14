@@ -1,18 +1,18 @@
 Sandbox
 ========
 
-**A restricted sandbox environment for Common Lisp code evaluation**
+**A restricted environment for Common Lisp code evaluation**
 
 Introduction
 ------------
 
-Common Lisp expressions are evaluated in a restricted
-sandbox environment which provides a subset of Common Lisp's features.
-In general, many features related to symbols, packages and operating
-system have been disabled. Some standard functions and macros have been
-replaced with safer versions. The sandbox is implemented in packages
-`SANDBOX-IMPL`, `SANDBOX-CL` and `SANDBOX-EXTRA`. Function
-`sandbox-impl:repl` is the interface for sandbox code evaluation.
+Common Lisp expressions are evaluated in a restricted environment
+which provides a subset of Common Lisp's features. In general, many
+features related to symbols, packages and operating system have been
+disabled. Some standard functions and macros have been replaced with
+safer versions. The sandbox is implemented in packages `SANDBOX-IMPL`
+and `SANDBOX-CL`. Function `sandbox-impl:repl` is the interface for
+sandbox code evaluation.
 
 The source code
 ---------------
