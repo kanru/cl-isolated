@@ -1,6 +1,8 @@
-;;;; Eval-bot --- An IRC bot for evaluating Common Lisp expressions
+;;;; Sandbox --- A restricted environment for evaluating Common Lisp
+;;;; expressions
 
 ;; Copyright (C) 2012-2013 Teemu Likonen <tlikonen@iki.fi>
+;; Copyright (C) 2014 Kan-Ru Chen <kanru@kanru.info>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU Affero General Public License as
@@ -71,11 +73,6 @@
                                      :name ,,name))))))
 
 ;;; General
-
-#+sbcl
-(import-export-symbols                  ;SB-IMPL package is locked.
-  sb-impl::backq-list sb-impl::backq-list* sb-impl::backq-append
-  sb-impl::backq-cons sb-impl::backq-nconc sb-impl::backq-vector)
 
 (import-export-symbols
   cl:&allow-other-keys cl:&aux cl:&body cl:&environment cl:&key cl:&optional

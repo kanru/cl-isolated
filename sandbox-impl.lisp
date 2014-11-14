@@ -174,9 +174,6 @@
                                     (eval (prog1 (setf form (sread s))
                                             (ssetq "-" form)))))))
 
-            (common:extra-command (c)
-              (signal c))
-
             (all-read ()
               (sandbox-print values stream))
 
