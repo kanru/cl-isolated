@@ -1,4 +1,5 @@
-;;;; Eval-bot --- An IRC bot for evaluating Common Lisp expressions
+;;;; Sandbox --- A restricted environment for evaluating Common Lisp
+;;;; expressions
 
 ;; Copyright (C) 2012-2013 Teemu Likonen <tlikonen@iki.fi>
 ;;
