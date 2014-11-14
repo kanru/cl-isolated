@@ -23,7 +23,7 @@ GitHub repository: <https://github.com/kanru/cl-sandbox>
 Copyright and license
 ---------------------
 
-Copyright (C) 2012-2013 Teemu Likonen <<tlikonen@iki.fi>>
+Copyright (C) 2012-2013 Teemu Likonen <<tlikonen@iki.fi>>  
 Copyright (C) 2014 Kan-Ru Chen <<kanru@kanru.info>>
 
 This program is free software: you can redistribute it and/or modify it
