@@ -55,5 +55,5 @@ along with this program. If not, see
 Acknowledgment
 --------------
 
-This library was forked from Teemu Likonen's cl-eval-bot project.
+This library was forked from Teemu Likonen's **cl-eval-bot** project.
 See <https://github.com/tlikonen/cl-eval-bot> for details.
