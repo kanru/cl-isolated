@@ -67,8 +67,8 @@
                          (cl:error 'sandbox-impl:disabled-feature
                                    :name name)))
 
-              (cl:eval `(cl:defsetf ,symbol (cl:&rest ignored) ()
-                          (cl:declare (cl:ignore ignored))
+              (cl:eval `(cl:defsetf ,symbol (cl:&rest ignored) (values-ignored)
+                          (cl:declare (cl:ignore ignored values-ignored))
                           `(cl:error 'sandbox-impl:disabled-feature
                                      :name ,,name))))))
 
