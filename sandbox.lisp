@@ -20,8 +20,8 @@
 
 (defpackage #:sandbox
   (:use #:cl #:sandbox-impl)
-  (:export #:read-eval-print #:reset #:*sandbox* #:sandbox-error
-           #:disabled-feature))
+  (:export #:*sandbox* #:*sandbox-homedir-pathname*
+           #:read-eval-print #:reset))
 
 (in-package #:sandbox)
 
