@@ -11,8 +11,20 @@ which provides a subset of Common Lisp's features. In general, many
 features related to symbols, packages and operating system have been
 disabled. Some standard functions and macros have been replaced with
 safer versions. The sandbox is implemented in packages `SANDBOX-IMPL`
-and `SANDBOX-CL`. Function `sandbox-impl:repl` is the interface for
-sandbox code evaluation.
+and `SANDBOX-CL`. Function `sandbox:read-eval-print` is the interface
+for sandbox code evaluation.
+
+Variable `sandbox:*sandbox*` is the name of the sandbox package used
+for evaluation. Use function `sandbox:reset` to reset the package.
+
+Disabled symbols
+-----------------
+
+To find the list of disabled symbols/features
+
+    (loop :for symbol :being :the :symbol :in (find-package :sandbox-cl)
+          :when (get symbol :sandbox-locked)
+            :collect symbol)
 
 The source code
 ---------------
