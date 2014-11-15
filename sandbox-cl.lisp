@@ -430,5 +430,4 @@
 
 (sdefun user-homedir-pathname (cl:&optional ignored)
   (cl:declare (cl:ignore ignored))
-  (cl:make-pathname :directory '(:absolute "home" "sandbox")
-                    :name cl:nil :type cl:nil))
+  sandbox-impl:*sandbox-homedir-pathname*)

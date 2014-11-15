@@ -20,16 +20,18 @@
 (defpackage #:sandbox-impl
   (:use #:cl)
   (:import-from #:alexandria #:with-gensyms #:circular-tree-p)
-  (:export #:repl #:reset #:translate-form #:*sandbox* #:sandbox-error
-           #:disabled-feature))
+  (:export #:*sandbox* #:*sandbox-homedir-pathname*
+           #:with-sandbox-env #:translate-form
+           #:sandbox-error #:disabled-feature))
 
 (in-package #:sandbox-impl)
 
 (declaim (optimize (safety 3)))
 
 (defvar *sandbox* "SANDBOX/LOCAL")
-(defvar *msg-value-prefix* "=> ")
-(defvar *msg-error-prefix* ";; ")
+(defvar *sandbox-homedir-pathname*
+  (make-pathname :directory '(:absolute "home" "sandbox")
+                 :name nil :type nil))
 (defvar *max-elements* 500)
 
 (define-condition sandbox-error (error) nil
@@ -55,10 +57,6 @@
              (format s "Array or list dimensions too large (max ~D elements)."
                      *max-elements*))))
 
-(define-condition all-read (sandbox-error) nil)
-
-(define-condition sandbox-package-error (sandbox-error) nil)
-
 (defmacro with-sandbox-env (&body body)
   (with-gensyms (input output two-way)
     `(with-open-stream (,input (make-string-input-stream
@@ -79,9 +77,7 @@
                    (*print-level* 10)
                    (*print-readably* nil)
                    (*read-eval* nil)
-                   (*default-pathname-defaults*
-                    (make-pathname :directory '(:absolute "home" "sandbox")
-                                   :name nil :type nil)))
+                   (*default-pathname-defaults* *sandbox-homedir-pathname*))
                ,@body)))))))
 
 (defvar *allowed-extra-symbols* nil)
@@ -115,100 +111,3 @@
                              (intern (symbol-name form) *sandbox*)))
                  (t (error 'unsupported-type :type (type-of form))))))
       (translate form))))
-
-(defun msge (stream format-string &rest params)
-  (apply #'format stream (concatenate 'string "~&" *msg-error-prefix*
-                                      format-string "~%")
-         params))
-
-(defun msgv (stream format-string &rest params)
-  (apply #'format stream (concatenate 'string "~&" *msg-value-prefix*
-                                      format-string "~%")
-         params))
-
-(defun sandbox-print (values &optional (stream *standard-output*))
-  (if values
-      (msgv stream "~{~S~^, ~}" values)
-      (msge stream "No value"))
-  nil)
-
-(defun reset ()
-  (ignore-errors
-    (delete-package *sandbox*))
-  (make-package *sandbox* :use '(#:sandbox-cl))
-  (loop :for name :in '("+" "++" "+++" "*" "**" "***" "/" "//" "///" "-")
-        :do (eval `(defparameter ,(intern name *sandbox*) nil)))
-  (loop :for fn :in '(+ - * /)
-        :for symbol := (intern (symbol-name fn) *sandbox*)
-        :do (setf (get symbol :sandbox-locked) t)
-        (eval `(defun ,symbol (&rest args)
-                 (apply ',fn args))))
-  *sandbox*)
-
-(defun repl (string &optional (stream *standard-output*))
-  (unless (or (find-package *sandbox*) (reset))
-    (msge stream "SANDBOX-PACKAGE-ERROR: Sandbox package not found.")
-    (return-from repl nil))
-
-  (with-sandbox-env
-    (with-input-from-string (s string)
-
-      (flet ((sread (stream)
-               (translate-form (handler-case (read stream)
-                                 (end-of-file ()
-                                   (signal 'all-read)))))
-
-             (ssetq (name value)
-               (setf (symbol-value (find-symbol (string-upcase name) *sandbox*))
-                     value))
-
-             (muffle (c)
-               (declare (ignore c))
-               (when (find-restart 'muffle-warning)
-                 (muffle-warning))))
-
-        (let (form values)
-
-          (handler-case
-              (handler-bind ((warning #'muffle))
-                (loop (setf values (multiple-value-list
-                                    (eval (prog1 (setf form (sread s))
-                                            (ssetq "-" form)))))))
-
-            (all-read ()
-              (sandbox-print values stream))
-
-            (undefined-function (c)
-              (msge stream "~A: The function ~A is undefined."
-                    (type-of c) (cell-error-name c)))
-
-            (end-of-file (c)
-              (msge stream "~A" (type-of c)))
-
-            (reader-error ()
-              (msge stream "READER-ERROR"))
-
-            (package-error ()
-              (msge stream "PACKAGE-ERROR"))
-
-            (stream-error (c)
-              (msge stream "~A" (type-of c)))
-
-            (storage-condition ()
-              (msge stream "STORAGE-CONDITION"))
-
-            (t (c)
-              (msge stream "~A: ~A" (type-of c) c)))
-
-          (flet ((svalue (string)
-                   (symbol-value (find-symbol string *sandbox*))))
-            (ssetq "///" (svalue "//"))
-            (ssetq "//"  (svalue "/"))
-            (ssetq "/"   values)
-            (ssetq "***" (svalue "**"))
-            (ssetq "**"  (svalue "*"))
-            (ssetq "*"   (first values))
-            (ssetq "+++" (svalue "++"))
-            (ssetq "++"  (svalue "+"))
-            (ssetq "+"   form))))))
-  nil)
