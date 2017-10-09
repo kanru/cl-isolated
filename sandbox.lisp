@@ -21,14 +21,20 @@
 (defpackage #:sandbox
   (:use #:cl #:sandbox-impl)
   (:export #:*sandbox* #:*sandbox-homedir-pathname*
-           #:read-eval-print #:reset))
+           #:read-eval-print #:reset
+	   #:*msg-value-prefix*
+	   #:*msg-value-formatter*
+	   #:*msg-error-prefix*
+	   #:*msg-no-value-message*))
 
 (in-package #:sandbox)
 
 (declaim (optimize (safety 3)))
 
-(defvar *msg-value-prefix* "=> ")
-(defvar *msg-error-prefix* ";; ")
+(defparameter *msg-value-prefix* "=> ")
+(defparameter *msg-error-prefix* ";; ")
+(defparameter *msg-value-formatter* "~{~S~^, ~}")
+(defparameter *msg-no-value-message* "No values.")
 
 (define-condition all-read () ())
 
@@ -43,9 +49,10 @@
          params))
 
 (defun sandbox-print (values &optional (stream *standard-output*))
+
   (if values
-      (msgv stream "~{~S~^, ~}" values)
-      (msge stream "No value"))
+      (msgv stream *msg-value-formatter* values)
+      (msge stream *msg-no-value-message*))
   nil)
 
 (defun reset ()
@@ -68,38 +75,39 @@
 
   (with-sandbox-env
     (with-input-from-string (s string)
-
-      (flet ((sread (stream)
-               (translate-form (handler-case (read stream)
-                                 (end-of-file ()
-                                   (signal 'all-read)))))
-
+      (flet ((sread (sexp)
+               (translate-form
+		sexp))
              (ssetq (name value)
                (setf (symbol-value (find-symbol (string-upcase name) *sandbox*))
                      value))
 
              (muffle (c)
-               (declare (ignore c))
+	       (declare (ignore c))
                (when (find-restart 'muffle-warning)
                  (muffle-warning))))
 
         (let (form values)
-
           (handler-case
               (handler-bind ((warning #'muffle))
-                (loop (setf values (multiple-value-list
-                                    (eval (prog1 (setf form (sread s))
-                                            (ssetq "-" form)))))))
-
+		(setf values (loop for sexp = (read s nil)
+				while sexp
+				collect
+				  (eval
+				   (prog1
+				       (setf form (sread sexp))
+				     (ssetq "-" form))) ))
+		(sandbox-print values stream))
+	    
             (all-read ()
               (sandbox-print values stream))
-
+	    
             (undefined-function (c)
               (msge stream "~A: The function ~A is undefined."
                     (type-of c) (cell-error-name c)))
 
-            (end-of-file (c)
-              (msge stream "~A" (type-of c)))
+            (end-of-file ()
+              (msge stream "SYNTAX ERROR: POSSIBLE MISSING ( or ) or \" "))
 
             (reader-error ()
               (msge stream "READER-ERROR"))
