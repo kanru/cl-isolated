@@ -1,8 +1,8 @@
-;;;; Sandbox --- A restricted environment for evaluating Common Lisp
+;;;; Isolated --- A isolated environment for evaluating Common Lisp
 ;;;; expressions
 
+;; Copyright (C) 2014, 2020 Kan-Ru Chen <kanru@kanru.info>
 ;; Copyright (C) 2012-2013 Teemu Likonen <tlikonen@iki.fi>
-;; Copyright (C) 2014 Kan-Ru Chen <kanru@kanru.info>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU Affero General Public License as
@@ -18,12 +18,12 @@
 ;; License along with this program. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(defpackage #:sandbox
-  (:use #:cl #:sandbox-impl)
-  (:export #:*sandbox* #:*sandbox-homedir-pathname*
+(defpackage #:isolated
+  (:use #:cl #:isolated-impl)
+  (:export #:*env* #:*isolated-homedir-pathname*
            #:read-eval-print #:reset))
 
-(in-package #:sandbox)
+(in-package #:isolated)
 
 (declaim (optimize (safety 3)))
 
@@ -42,7 +42,7 @@
                                       format-string "~%")
          params))
 
-(defun sandbox-print (values &optional (stream *standard-output*))
+(defun isolated-print (values &optional (stream *standard-output*))
   (if values
       (msgv stream "~{~S~^, ~}" values)
       (msge stream "No value"))
@@ -50,23 +50,23 @@
 
 (defun reset ()
   (ignore-errors
-    (delete-package *sandbox*))
-  (make-package *sandbox* :use '(#:sandbox-cl))
+    (delete-package *env*))
+  (make-package *env* :use '(#:isolated-cl))
   (loop :for name :in '("+" "++" "+++" "*" "**" "***" "/" "//" "///" "-")
-        :do (eval `(defparameter ,(intern name *sandbox*) nil)))
+        :do (eval `(defparameter ,(intern name *env*) nil)))
   (loop :for fn :in '(+ - * /)
-        :for symbol := (intern (symbol-name fn) *sandbox*)
-        :do (setf (get symbol :sandbox-locked) t)
+        :for symbol := (intern (symbol-name fn) *env*)
+        :do (setf (get symbol :isolated-locked) t)
         (eval `(defun ,symbol (&rest args)
                  (apply ',fn args))))
-  *sandbox*)
+  *env*)
 
 (defun read-eval-print (string &optional (stream *standard-output*))
-  (unless (or (find-package *sandbox*) (reset))
-    (msge stream "SANDBOX-PACKAGE-ERROR: Sandbox package not found.")
+  (unless (or (find-package *env*) (reset))
+    (msge stream "ISOLATED-PACKAGE-ERROR: Isolated package not found.")
     (return-from read-eval-print nil))
 
-  (with-sandbox-env
+  (with-isolated-env
     (with-input-from-string (s string)
 
       (flet ((sread (stream)
@@ -75,7 +75,7 @@
                                    (signal 'all-read)))))
 
              (ssetq (name value)
-               (setf (symbol-value (find-symbol (string-upcase name) *sandbox*))
+               (setf (symbol-value (find-symbol (string-upcase name) *env*))
                      value))
 
              (muffle (c)
@@ -92,7 +92,7 @@
                                             (ssetq "-" form)))))))
 
             (all-read ()
-              (sandbox-print values stream))
+              (isolated-print values stream))
 
             (undefined-function (c)
               (msge stream "~A: The function ~A is undefined."
@@ -117,7 +117,7 @@
               (msge stream "~A: ~A" (type-of c) c)))
 
           (flet ((svalue (string)
-                   (symbol-value (find-symbol string *sandbox*))))
+                   (symbol-value (find-symbol string *env*))))
             (ssetq "///" (svalue "//"))
             (ssetq "//"  (svalue "/"))
             (ssetq "/"   values)

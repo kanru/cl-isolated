@@ -1,42 +1,56 @@
-Sandbox
+Isolated
 ========
 
-**A restricted environment for Common Lisp code evaluation**
+**A isolated environment for Common Lisp code evaluation**
 
 Introduction
 ------------
 
-Common Lisp expressions are evaluated in a restricted environment
+Common Lisp expressions are evaluated in a isolated environment
 which provides a subset of Common Lisp's features. In general, many
 features related to symbols, packages and operating system have been
 disabled. Some standard functions and macros have been replaced with
-safer versions. The sandbox is implemented in packages `SANDBOX-IMPL`
-and `SANDBOX-CL`. Function `sandbox:read-eval-print` is the interface
-for sandbox code evaluation.
+safer versions. The isolated is implemented in packages `ISOLATED-IMPL`
+and `ISOLATED-CL`. Function `isolated:read-eval-print` is the interface
+for isolated code evaluation.
 
-Variable `sandbox:*sandbox*` is the name of the sandbox package used
-for evaluation. Use function `sandbox:reset` to reset the package.
+Variable `isolated:*env*` is the name of the isolated package used
+for evaluation. Use function `isolated:reset` to reset the package.
+
+Getting started
+---------------
+
+```lisp
+CL-USER> (ql:quickload "isolated")
+CL-USER> (isolated:read-eval-print "(princ-to-string '(hello world))")
+=> "(HELLO WORLD)"
+CL-USER> (isolated:read-eval-print "(load \"~/quicklisp.lisp\")")
+;; DISABLED-FEATURE: The feature LOAD is disabled.
+NIL
+```
 
 Disabled symbols
 -----------------
 
 To find the list of disabled symbols/features
 
-    (loop :for symbol :being :the :symbol :in (find-package :sandbox-cl)
-          :when (get symbol :sandbox-locked)
-            :collect symbol)
+```lisp
+(loop :for symbol :being :the :symbol :in (find-package :isolated-cl)
+      :when (get symbol :isolated-locked)
+        :collect symbol)
+```
 
 The source code
 ---------------
 
-GitHub repository: <https://github.com/kanru/cl-sandbox>
+GitHub repository: <https://github.com/kanru/cl-isolated>
 
 
 Copyright and license
 ---------------------
 
+Copyright (C) 2014, 2020 Kan-Ru Chen <<kanru@kanru.info>>  
 Copyright (C) 2012-2013 Teemu Likonen <<tlikonen@iki.fi>>  
-Copyright (C) 2014 Kan-Ru Chen <<kanru@kanru.info>>
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU Affero General Public License as published by

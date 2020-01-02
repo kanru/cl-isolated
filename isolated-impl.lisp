@@ -1,6 +1,7 @@
-;;;; Sandbox --- A restricted environment for evaluating Common Lisp
+;;;; Isolated --- A isolated environment for evaluating Common Lisp
 ;;;; expressions
 
+;; Copyright (C) 2014, 2020 Kan-Ru Chen <kanru@kanru.info>
 ;; Copyright (C) 2012-2013 Teemu Likonen <tlikonen@iki.fi>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -17,47 +18,47 @@
 ;; License along with this program. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(defpackage #:sandbox-impl
+(defpackage #:isolated-impl
   (:use #:cl)
   (:import-from #:alexandria #:with-gensyms #:circular-tree-p)
-  (:export #:*sandbox* #:*sandbox-homedir-pathname*
-           #:with-sandbox-env #:translate-form
-           #:sandbox-error #:disabled-feature))
+  (:export #:*env* #:*isolated-homedir-pathname*
+           #:with-isolated-env #:translate-form
+           #:isolated-error #:disabled-feature))
 
-(in-package #:sandbox-impl)
+(in-package #:isolated-impl)
 
 (declaim (optimize (safety 3)))
 
-(defvar *sandbox* "SANDBOX/LOCAL")
-(defvar *sandbox-homedir-pathname*
-  (make-pathname :directory '(:absolute "home" "sandbox")
+(defvar *env* "ISOLATED/LOCAL")
+(defvar *isolated-homedir-pathname*
+  (make-pathname :directory '(:absolute "home" "isolated")
                  :name nil :type nil))
 (defvar *max-elements* 500)
 
-(define-condition sandbox-error (error) nil
-  (:report "Sandbox error."))
+(define-condition isolated-error (error) nil
+  (:report "Isolated error."))
 
-(define-condition unsupported-type (sandbox-error)
+(define-condition unsupported-type (isolated-error)
   ((type :initarg :type :reader unsupported-type))
   (:report (lambda (c s)
              (format s "Type ~A is not supported." (unsupported-type c)))))
 
-(define-condition disabled-feature (sandbox-error)
+(define-condition disabled-feature (isolated-error)
   ((name :initarg :name :reader disabled-feature-name))
   (:report (lambda (c s)
              (format s "The feature ~A is disabled."
                      (disabled-feature-name c)))))
 
-(define-condition circular-list (sandbox-error) nil
+(define-condition circular-list (isolated-error) nil
   (:report "Circular list was detected."))
 
-(define-condition dimension-error (sandbox-error) nil
+(define-condition dimension-error (isolated-error) nil
   (:report (lambda (c s)
              (declare (ignore c))
              (format s "Array or list dimensions too large (max ~D elements)."
                      *max-elements*))))
 
-(defmacro with-sandbox-env (&body body)
+(defmacro with-isolated-env (&body body)
   (with-gensyms (input output two-way)
     `(with-open-stream (,input (make-string-input-stream
                                 "This is the standard input stream!"))
@@ -71,13 +72,13 @@
                    (*debug-io* ,two-way)
                    (*query-io* ,two-way)
                    (*terminal-io* ,two-way)
-                   (*package* (find-package *sandbox*))
+                   (*package* (find-package *env*))
                    (*features* nil)
                    (*print-length* 50)
                    (*print-level* 10)
                    (*print-readably* nil)
                    (*read-eval* nil)
-                   (*default-pathname-defaults* *sandbox-homedir-pathname*))
+                   (*default-pathname-defaults* *isolated-homedir-pathname*))
                ,@body)))))))
 
 (defvar *allowed-extra-symbols* nil)
@@ -108,6 +109,6 @@
                  (keyword form)
                  (symbol (if (member form *allowed-extra-symbols*)
                              form
-                             (intern (symbol-name form) *sandbox*)))
+                             (intern (symbol-name form) *env*)))
                  (t (error 'unsupported-type :type (type-of form))))))
       (translate form))))

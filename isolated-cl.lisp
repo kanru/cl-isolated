@@ -1,8 +1,8 @@
-;;;; Sandbox --- A restricted environment for evaluating Common Lisp
+;;;; Isolated --- A isolated environment for evaluating Common Lisp
 ;;;; expressions
 
+;; Copyright (C) 2014, 2020 Kan-Ru Chen <kanru@kanru.info>
 ;; Copyright (C) 2012-2013 Teemu Likonen <tlikonen@iki.fi>
-;; Copyright (C) 2014 Kan-Ru Chen <kanru@kanru.info>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU Affero General Public License as
@@ -18,8 +18,8 @@
 ;; License along with this program. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(cl:defpackage #:sandbox-cl (:use))
-(cl:in-package #:sandbox-cl)
+(cl:defpackage #:isolated-cl (:use))
+(cl:in-package #:isolated-cl)
 
 (cl:declaim (cl:optimize (cl:safety 3)))
 
@@ -38,38 +38,38 @@
 
 (cl:defmacro sdefun (name lambda-list cl:&body body)
   `(cl:progn
-     (cl:setf (cl:get ',name :sandbox-locked) cl:t)
+     (cl:setf (cl:get ',name :isolated-locked) cl:t)
      (cl:export (cl:list ',name))
      (cl:defun ,name ,lambda-list ,@body)))
 
 (cl:defmacro sdefmacro (name lambda-list cl:&body body)
   `(cl:progn
-     (cl:setf (cl:get ',name :sandbox-locked) cl:t)
+     (cl:setf (cl:get ',name :isolated-locked) cl:t)
      (cl:export (cl:list ',name))
      (cl:defmacro ,name ,lambda-list ,@body)))
 
 (cl:defmacro disabled-features (cl:&body symbols)
   `(cl:loop :for symbol :in ',symbols
             :do
-            (cl:setf (cl:get symbol :sandbox-locked) cl:t)
+            (cl:setf (cl:get symbol :isolated-locked) cl:t)
             (cl:export (cl:list symbol))
             (cl:let ((name (cl:symbol-name symbol)))
 
               (cl:setf (cl:macro-function symbol)
                        (cl:lambda (cl:&rest ignored)
                          (cl:declare (cl:ignore ignored))
-                         `(cl:error 'sandbox-impl:disabled-feature
+                         `(cl:error 'isolated-impl:disabled-feature
                                     :name ,name))
 
                        (cl:symbol-function symbol)
                        (cl:lambda (cl:&rest ignored)
                          (cl:declare (cl:ignore ignored))
-                         (cl:error 'sandbox-impl:disabled-feature
+                         (cl:error 'isolated-impl:disabled-feature
                                    :name name)))
 
               (cl:eval `(cl:defsetf ,symbol (cl:&rest ignored) (values-ignored)
                           (cl:declare (cl:ignore ignored values-ignored))
-                          `(cl:error 'sandbox-impl:disabled-feature
+                          `(cl:error 'isolated-impl:disabled-feature
                                      :name ,,name))))))
 
 ;;; General
@@ -90,12 +90,12 @@
   the declare locally)
 
 (sdefun eval (form)
-  (cl:values-list (sandbox-impl:translate-form
+  (cl:values-list (isolated-impl:translate-form
                    (cl:multiple-value-list
-                    (cl:eval (sandbox-impl:translate-form form))))))
+                    (cl:eval (isolated-impl:translate-form form))))))
 
 (sdefmacro defmacro (name lambda-list cl:&body body)
-  (cl:if (cl:get name :sandbox-locked)
+  (cl:if (cl:get name :isolated-locked)
          (cl:error 'cl:package-error :package cl:nil)
          `(cl:defmacro ,name ,lambda-list ,@body)))
 
@@ -136,10 +136,10 @@
 
 (sdefmacro defun (name lambda-list cl:&body body)
   (cl:if (cl:or (cl:and (cl:symbolp name)
-                        (cl:get name :sandbox-locked))
+                        (cl:get name :isolated-locked))
                 (cl:and (cl:consp name)
                         (cl:eql (cl:first name) 'cl:setf)
-                        (cl:get (cl:second name) :sandbox-locked)))
+                        (cl:get (cl:second name) :isolated-locked)))
          (cl:error 'cl:package-error :package cl:nil)
          `(cl:defun ,name ,lambda-list ,@body)))
 
@@ -400,11 +400,11 @@
   with-standard-io-syntax)
 
 (sdefun read (cl:&rest args)
-  (cl:values-list (sandbox-impl:translate-form
+  (cl:values-list (isolated-impl:translate-form
                    (cl:multiple-value-list (cl:apply #'cl:read args)))))
 
 (sdefun read-from-string (cl:&rest args)
-  (cl:values-list (sandbox-impl:translate-form
+  (cl:values-list (isolated-impl:translate-form
                    (cl:multiple-value-list
                     (cl:apply #'cl:read-from-string args)))))
 
@@ -430,4 +430,4 @@
 
 (sdefun user-homedir-pathname (cl:&optional ignored)
   (cl:declare (cl:ignore ignored))
-  sandbox-impl:*sandbox-homedir-pathname*)
+  isolated-impl:*isolated-homedir-pathname*)
