@@ -23,7 +23,9 @@
   (:import-from #:alexandria #:with-gensyms #:circular-tree-p)
   (:export #:*env* #:*isolated-homedir-pathname*
            #:with-isolated-env #:translate-form
-           #:isolated-error #:disabled-feature))
+           #:isolated-error #:disabled-feature
+	   #:isolated-allowed-symbols #:set-allowed-symbol
+	   #:allow-symbols #:allow-package-symbols))
 
 (in-package #:isolated-impl)
 
@@ -81,7 +83,45 @@
                    (*default-pathname-defaults* *isolated-homedir-pathname*))
                ,@body)))))))
 
-(defvar *allowed-extra-symbols* nil)
+(defvar *allowed-isolated-symbols* nil)
+(defvar *allowed-isolated-functions* nil)
+
+(defun isolated-allowed-symbols ()
+  (loop :for symbol :being :the :symbol :in (find-package 'isolated-cl)
+     :when (not (get symbol :isolated-locked))
+     :do
+       (if (fboundp symbol)
+	   (push symbol *allowed-isolated-functions*)
+	   (push symbol *allowed-isolated-symbols*)))
+  )
+
+(defvar *allowed-packages-symbols* nil)
+(defvar *allowed-packages-functions* nil)
+
+(defun set-allowed-symbol (symbol)
+  (if (fboundp symbol)
+      (push symbol *allowed-packages-functions*)
+      (push symbol *allowed-packages-symbols*)))
+
+
+(defun get-package-symbols (packages &optional excluded-symbols)
+  (let (symbols)
+    (dolist (package packages)
+      (do-external-symbols (s (find-package package))
+	(unless (find s excluded-symbols :test 'equalp)
+	  (push s symbols))))
+    symbols))
+
+(defun allow-symbols (symbols)
+  (dolist (symbol symbols)
+      (set-allowed-symbol symbol)))
+
+(defun allow-package-symbols (packages &optional excluded-symbols)
+  (unless *allowed-packages-symbols*
+    (dolist (package packages)
+	(do-external-symbols (symbol (find-package package))
+	  (unless (find symbol excluded-symbols :test 'equalp)
+	    (set-allowed-symbol symbol))))))
 
 (defun translate-form (form)
   (when (and (consp form)
@@ -107,8 +147,13 @@
                                       (translate-form
                                        (row-major-aref form i)))))))
                  (keyword form)
-                 (symbol (if (member form *allowed-extra-symbols*)
-                             form
-                             (intern (symbol-name form) *env*)))
+                 (symbol (if (fboundp form)
+			     (or (find form *allowed-isolated-functions*)
+				 (find form *allowed-packages-functions*)
+				 (error 'undefined-function :name form))
+			     (if (or (find form *allowed-isolated-symbols*)
+				     (find form *allowed-packages-symbols*))
+				 form
+				 (intern (symbol-name form) *env*))))
                  (t (error 'unsupported-type :type (type-of form))))))
       (translate form))))

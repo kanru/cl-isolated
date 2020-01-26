@@ -48,83 +48,216 @@
       (msge stream "No value"))
   nil)
 
+(isolated-allowed-symbols)
+
 (defun reset ()
+  (setf isolated-impl::*allowed-isolated-symbols* nil)
+  (setf isolated-impl::*allowed-isolated-functions* nil)
+  (setf isolated-impl::*allowed-packages-symbols* nil)
+  (setf isolated-impl::*allowed-packages-functions* nil)
+
+  (isolated-allowed-symbols)
+   
   (ignore-errors
     (delete-package *env*))
   (make-package *env* :use '(#:isolated-cl))
   (loop :for name :in '("+" "++" "+++" "*" "**" "***" "/" "//" "///" "-")
-        :do (eval `(defparameter ,(intern name *env*) nil)))
+     :do (eval `(defparameter ,(intern name *env*) nil)))
   (loop :for fn :in '(+ - * /)
-        :for symbol := (intern (symbol-name fn) *env*)
-        :do (setf (get symbol :isolated-locked) t)
-        (eval `(defun ,symbol (&rest args)
-                 (apply ',fn args))))
+     :for symbol := (intern (symbol-name fn) *env*)
+     :do (setf (get symbol :isolated-locked) t)
+       (eval `(defun ,symbol (&rest args)
+                (apply ',fn args))))
   *env*)
 
-(defun read-eval-print (string &optional (stream *standard-output*))
+(defun read-no-eval (forms &key packages exclude-symbols)
+  "Returns forms and/or any messages."
+  (unless (or (find-package *env*) (reset))    
+    (return-from read-no-eval "ISOLATED-PACKAGE-ERROR: Isolated package not found."))
+
+  (allow-package-symbols packages exclude-symbols)
+
+  (let ((validated-forms)
+	(msg))
+
+    (labels ((sexp-read (sexps)
+	       (let (values)
+		 (if (listp (car sexps))		     
+		     (dolist (sexp sexps)		 
+		       (push (translate-form sexp) values))
+		     (push (translate-form sexps) values))
+		 (reverse values)))
+
+	     (sread (string)
+	       (let (values)
+		 (with-input-from-string (s string)		 
+		   (loop for sexp = (read s nil)
+		      while sexp
+		      do
+			(if (listp (car sexp))
+			    (dolist (sexpx sexp)
+			      (push (translate-form sexpx)
+				    values))
+			    (push (translate-form sexp)
+				  values))))
+		 (reverse values))))
+      
+      (setf validated-forms
+	    (if (stringp forms)
+		(sread forms)
+		(sexp-read forms))))
+    (values validated-forms msg)))
+
+(defun read-eval (forms &key packages exclude-symbols)
+  "Returns eval values and/or any messages."
+
+  (unless (or (find-package *env*) (reset))
+    (return-from read-eval (values nil "ISOLATED-PACKAGE-ERROR: Isolated package not found.")))
+
+  (allow-package-symbols packages exclude-symbols)
+
+  (with-isolated-env
+    (let ((values)
+	  (msg))
+       
+      (flet ((sexp-read (sexps)
+	       (let (values)
+		 (if (listp (car sexps))
+		     (dolist (sexp sexps)
+		       (push (multiple-value-list
+			      (eval
+			       (translate-form sexp)))
+			     values))
+		     (push (multiple-value-list
+			    (eval
+			     (translate-form sexps)))
+			   values))   
+		 (reverse values)))
+	     (sread (string)
+	       (let (values) 
+		 (with-input-from-string (s string)		  
+		   (loop for sexp = (read s nil)
+		      while sexp
+		      do
+			(multiple-value-list
+			 (if (listp (car sexp))
+			     (dolist (sexpx sexp)
+			       (push (multiple-value-list
+				      (eval
+				       (translate-form sexpx)))
+				     values))
+			     (push (multiple-value-list
+				    (eval
+				     (translate-form sexp)))
+				   values)))))
+		 (reverse values))))
+	(setf values (if (stringp forms)
+			 (sread forms)
+			 (sexp-read forms))))
+      (values values msg))))
+
+
+(defun ssetq (name value)
+  (setf (symbol-value (find-symbol (string-upcase name) *env*))
+		       value))
+
+
+(defun read-eval-print (forms &optional (stream *standard-output*))
   (unless (or (find-package *env*) (reset))
     (msge stream "ISOLATED-PACKAGE-ERROR: Isolated package not found.")
     (return-from read-eval-print nil))
 
   (with-isolated-env
-    (with-input-from-string (s string)
+    (let (form)
+	
+      (flet ((sexp-read (sexps)
+	       (let (values)
+		 (if (listp (car sexps))
+		     (dolist (sexp sexps)
+		       (push (multiple-value-list
+			      (eval
+			       (translate-form sexp)))
+			     values))
+		     (push (multiple-value-list
+			    (eval
+			     (translate-form sexps)))
+			   values))   
+		 (reverse values)))
 
-      (flet ((sread (stream)
-               (translate-form (handler-case (read stream)
-                                 (end-of-file ()
-                                   (signal 'all-read)))))
+	     (sread (string)
+	       (let (values) 
+		 (with-input-from-string (s string)		  
+		   (loop for sexp = (read s nil)
+		      while sexp
+		      do
+			(multiple-value-list
+			 (if (listp (car sexp))			       
+			     (dolist (sexpx sexp)
+			       (setf form (translate-form sexpx))
+			       (push (multiple-value-list
+				      (eval
+				       (prog1
+					   form
+					 (ssetq "-" form))))
+				     values))
+			     (progn
+			       (setf form (translate-form sexp))
+			       (push (multiple-value-list
+				      (eval
+				       (prog1
+					   form
+					 (ssetq "-" form))
+				       ))
+				     values))))))
+		 (reverse values)))
 
-             (ssetq (name value)
-               (setf (symbol-value (find-symbol (string-upcase name) *env*))
-                     value))
+	     (muffle (c)
+	       (declare (ignore c))
+	       (when (find-restart 'muffle-warning)
+		 (muffle-warning))))
 
-             (muffle (c)
-               (declare (ignore c))
-               (when (find-restart 'muffle-warning)
-                 (muffle-warning))))
+	(let (form values)
 
-        (let (form values)
+	  (handler-case
+	      (handler-bind ((warning #'muffle))
 
-          (handler-case
-              (handler-bind ((warning #'muffle))
-                (loop (setf values (multiple-value-list
-                                    (eval (prog1 (setf form (sread s))
-                                            (ssetq "-" form)))))))
+		(setf values (if (stringp forms)
+				 (sread forms)
+				 (sexp-read forms)))
+		(dolist (value values)
+		  (isolated-print value stream)))
 
-            (all-read ()
-              (isolated-print values stream))
+	    (undefined-function (c)
+	      (msge stream "~A: The function ~A is undefined."
+		    (type-of c) (cell-error-name c)))
 
-            (undefined-function (c)
-              (msge stream "~A: The function ~A is undefined."
-                    (type-of c) (cell-error-name c)))
+	    (end-of-file (c)
+	      (msge stream "~A" (type-of c)))
 
-            (end-of-file (c)
-              (msge stream "~A" (type-of c)))
+	    (reader-error ()
+	      (msge stream "READER-ERROR"))
 
-            (reader-error ()
-              (msge stream "READER-ERROR"))
+	    (package-error ()
+	      (msge stream "PACKAGE-ERROR"))
 
-            (package-error ()
-              (msge stream "PACKAGE-ERROR"))
+	    (stream-error (c)
+	      (msge stream "~A" (type-of c)))
 
-            (stream-error (c)
-              (msge stream "~A" (type-of c)))
+	    (storage-condition ()
+	      (msge stream "STORAGE-CONDITION"))
 
-            (storage-condition ()
-              (msge stream "STORAGE-CONDITION"))
+	    (t (c)
+	      (msge stream "~A: ~A" (type-of c) c)))
 
-            (t (c)
-              (msge stream "~A: ~A" (type-of c) c)))
-
-          (flet ((svalue (string)
-                   (symbol-value (find-symbol string *env*))))
-            (ssetq "///" (svalue "//"))
-            (ssetq "//"  (svalue "/"))
-            (ssetq "/"   values)
-            (ssetq "***" (svalue "**"))
-            (ssetq "**"  (svalue "*"))
-            (ssetq "*"   (first values))
-            (ssetq "+++" (svalue "++"))
-            (ssetq "++"  (svalue "+"))
-            (ssetq "+"   form))))))
+	  (flet ((svalue (string)
+		   (symbol-value (find-symbol string *env*))))
+	    (ssetq "///" (svalue "//"))
+	    (ssetq "//"  (svalue "/"))
+	    (ssetq "/"   values)
+	    (ssetq "***" (svalue "**"))
+	    (ssetq "**"  (svalue "*"))
+	    (ssetq "*"   (first values))
+	    (ssetq "+++" (svalue "++"))
+	    (ssetq "++"  (svalue "+"))
+	    (ssetq "+"   form))))))
   nil)
