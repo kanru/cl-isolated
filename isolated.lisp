@@ -21,7 +21,9 @@
 (defpackage #:isolated
   (:use #:cl #:isolated-impl)
   (:export #:*env* #:*isolated-homedir-pathname*
-           #:read-eval-print #:reset))
+           #:read-eval-print #:reset
+	   #:read-no-eval #:read-eval
+	   #:))
 
 (in-package #:isolated)
 
