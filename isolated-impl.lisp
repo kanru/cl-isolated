@@ -91,25 +91,24 @@
      :when (not (get symbol :isolated-locked))
      :do
        (if (fboundp symbol)
-	   (push symbol *allowed-isolated-functions*)
-	   (push symbol *allowed-isolated-symbols*)))
-  )
+	   (pushnew symbol *allowed-isolated-functions*)
+	   (pushnew symbol *allowed-isolated-symbols*))))
 
-(defvar *allowed-packages-symbols* nil)
-(defvar *allowed-packages-functions* nil)
+(defparameter *allowed-packages-symbols* nil)
+(defparameter *allowed-packages-functions* nil)
 
 (defun set-allowed-symbol (symbol)
+  
   (if (fboundp symbol)
-      (push symbol *allowed-packages-functions*)
-      (push symbol *allowed-packages-symbols*)))
-
+      (pushnew symbol *allowed-packages-functions*)
+      (pushnew symbol *allowed-packages-symbols*)))
 
 (defun get-package-symbols (packages &optional excluded-symbols)
   (let (symbols)
     (dolist (package packages)
       (do-external-symbols (s (find-package package))
 	(unless (find s excluded-symbols :test 'equalp)
-	  (push s symbols))))
+	  (pushnew s symbols))))
     symbols))
 
 (defun allow-symbols (symbols)
@@ -117,11 +116,10 @@
       (set-allowed-symbol symbol)))
 
 (defun allow-package-symbols (packages &optional excluded-symbols)
-  (unless *allowed-packages-symbols*
-    (dolist (package packages)
-	(do-external-symbols (symbol (find-package package))
-	  (unless (find symbol excluded-symbols :test 'equalp)
-	    (set-allowed-symbol symbol))))))
+  (dolist (package packages)
+    (do-external-symbols (symbol (find-package package))
+      (unless (find symbol excluded-symbols :test 'equalp)
+	(set-allowed-symbol symbol)))))
 
 (defun translate-form (form)
   (when (and (consp form)

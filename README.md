@@ -22,11 +22,74 @@ Getting started
 
 ```lisp
 CL-USER> (ql:quickload "isolated")
+
 CL-USER> (isolated:read-eval-print "(princ-to-string '(hello world))")
 => "(HELLO WORLD)"
+
 CL-USER> (isolated:read-eval-print "(load \"~/quicklisp.lisp\")")
 ;; DISABLED-FEATURE: The feature LOAD is disabled.
-NIL
+=> NIL
+```
+
+More Examples
+-------------
+
+```lisp
+CL-USER> (isolated::read-no-eval (list '(princ-to-string '(hello world))
+                                       '(princ-to-string '(eish world))))
+=> ((PRINC-TO-STRING '(ISOLATED/LOCAL::HELLO ISOLATED/LOCAL::WORLD))
+=> (PRINC-TO-STRING '(ISOLATED/LOCAL::EISH ISOLATED/LOCAL::WORLD)))
+=> NIL
+
+CL-USER> (isolated::read-eval (list '(princ-to-string '(hello world))
+                                    '(princ-to-string '(eish world))))
+=> (("(HELLO WORLD)") ("(EISH WORLD)"))
+=> NIL
+
+CL-USER> (isolated::read-eval-print (list '(princ-to-string '(hello world))
+                                          '(princ-to-string '(eish world))))
+=> "(HELLO WORLD)"
+=> "(EISH WORLD)"
+=> NIL
+
+CL-USER> (isolated:read-eval-print "(princ-to-string '(hello world)) 
+                                    (princ-to-string '(eish world))")
+=> "(HELLO WORLD)"
+=> "(EISH WORLD)"
+=> NIL
+```
+
+Examples Allowing additional functions
+--------------------------------------
+
+```lisp
+CL-USER> (defun do-eish (eish) eish)
+=> DO-EISH
+
+CL-USER> (isolated:read-eval-print "(do-eish 'eish)")
+;; UNDEFINED-FUNCTION: The function DO-EISH is undefined.
+
+CL-USER>  (isolated-impl:allow-symbols (list 'do-eish))
+=> NIL
+
+CL-USER> (isolated::read-no-eval "(cl-user::do-eish 'cl-user::eish)")
+=> ((DO-EISH 'ISOLATED/LOCAL::EISH))
+=> NIL
+
+CL-USER>  (isolated-impl:allow-symbols (list 'do-eish 'eish))
+=> NIL
+
+CL-USER> (isolated::read-no-eval "(cl-user::do-eish 'cl-user::eish)")
+=> ((DO-EISH 'EISH))
+=> NIL
+
+CL-USER> (isolated::read-eval-print "(cl-user::do-eish 'eish)")
+=> EISH
+=> NIL
+
+CL-USER> (isolated::read-eval-print "(cl-user::do-eish 'cl-user::eish)")
+=> COMMON-LISP-USER::EISH
+=> NIL
 ```
 
 Disabled symbols
