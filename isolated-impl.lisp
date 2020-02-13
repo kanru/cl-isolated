@@ -97,6 +97,8 @@
 (defparameter *allowed-packages-symbols* nil)
 (defparameter *allowed-packages-functions* nil)
 
+(defparameter *allowed-internal-functions* nil)
+
 (defun set-allowed-symbol (symbol)
   
   (if (fboundp symbol)
@@ -120,6 +122,8 @@
     (do-external-symbols (symbol (find-package package))
       (unless (find symbol excluded-symbols :test 'equalp)
 	(set-allowed-symbol symbol)))))
+
+(defparameter *previous-form* nil)
 
 (defun translate-form (form)
   (when (and (consp form)
@@ -145,13 +149,33 @@
                                       (translate-form
                                        (row-major-aref form i)))))))
                  (keyword form)
-                 (symbol (if (fboundp form)
+                 (symbol
+
+		  (when (or (equalp *previous-form* 'isolated-cl::defun)
+			    (equalp *previous-form* 'isolated-cl::defmacro)
+			    (equalp *previous-form* 'cl::defun)
+			    (equalp *previous-form* 'cl::defmacro))
+		    (pushnew form *allowed-internal-functions*))
+		  
+		  (let ((final-form
+			 (if (fboundp form)
 			     (or (find form *allowed-isolated-functions*)
 				 (find form *allowed-packages-functions*)
+				 (find form *allowed-internal-functions*)
+				 (or
+				  (and (equalp form 'isolated-cl::defun) form)
+				  (and (equalp form 'isolated-cl::defmacro) form)
+				  (and (equalp form 'cl:defun) form)
+				  (and (equalp form 'cl:defmacro) form)
+				  )
+                                 
 				 (error 'undefined-function :name form))
 			     (if (or (find form *allowed-isolated-symbols*)
 				     (find form *allowed-packages-symbols*))
 				 form
-				 (intern (symbol-name form) *env*))))
+				 (intern (symbol-name form) *env*)))))
+		    (setf *previous-form* final-form)
+                    
+		    final-form))
                  (t (error 'unsupported-type :type (type-of form))))))
       (translate form))))
