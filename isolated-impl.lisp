@@ -165,8 +165,10 @@
 				 (or
 				  (and (string-equal (symbol-name form) "defun") form)
 				  (and (string-equal (symbol-name form) "defmacro") form))
+				 
                                  ;;having issues when defun parameters also a function
 				 ;;(error 'undefined-function :name form)
+				 form
 				 )
 			     (if (or (find form *allowed-isolated-symbols*)
 				     (find form *allowed-packages-symbols*))
