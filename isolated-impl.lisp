@@ -151,10 +151,10 @@
                  (keyword form)
                  (symbol
 
-		  (when (or (equalp *previous-form* 'isolated-cl::defun)
-			    (equalp *previous-form* 'isolated-cl::defmacro)
-			    (equalp *previous-form* 'cl::defun)
-			    (equalp *previous-form* 'cl::defmacro))
+		  
+		  
+		  (when (or (string-equal (symbol-name *previous-form*) "defun")
+			    (string-equal (symbol-name *previous-form*) "defmacro"))
 		    (pushnew form *allowed-internal-functions*))
 		  
 		  (let ((final-form
@@ -163,19 +163,18 @@
 				 (find form *allowed-packages-functions*)
 				 (find form *allowed-internal-functions*)
 				 (or
-				  (and (equalp form 'isolated-cl::defun) form)
-				  (and (equalp form 'isolated-cl::defmacro) form)
-				  (and (equalp form 'cl:defun) form)
-				  (and (equalp form 'cl:defmacro) form)
-				  )
-                                 
-				 (error 'undefined-function :name form))
+				  (and (string-equal (symbol-name form) "defun") form)
+				  (and (string-equal (symbol-name form) "defmacro") form))
+                                 ;;having issues when defun parameters also a function
+				 ;;(error 'undefined-function :name form)
+				 )
 			     (if (or (find form *allowed-isolated-symbols*)
 				     (find form *allowed-packages-symbols*))
 				 form
 				 (intern (symbol-name form) *env*)))))
+		    
 		    (setf *previous-form* final-form)
-                    
+
 		    final-form))
                  (t (error 'unsupported-type :type (type-of form))))))
       (translate form))))
