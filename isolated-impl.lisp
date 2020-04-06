@@ -22,6 +22,7 @@
   (:use #:cl)
   (:import-from #:alexandria #:with-gensyms #:circular-tree-p)
   (:export #:*env* #:*isolated-homedir-pathname*
+	   #:*max-elements*
            #:with-isolated-env #:translate-form
            #:isolated-error #:disabled-feature
 	   #:isolated-allowed-symbols #:set-allowed-symbol
@@ -35,7 +36,8 @@
 (defvar *isolated-homedir-pathname*
   (make-pathname :directory '(:absolute "home" "isolated")
                  :name nil :type nil))
-(defvar *max-elements* 500)
+
+(defparameter *max-elements* 500)
 
 (define-condition isolated-error (error) nil
   (:report "Isolated error."))
@@ -100,7 +102,6 @@
 (defparameter *allowed-internal-functions* nil)
 
 (defun set-allowed-symbol (symbol)
-  
   (if (fboundp symbol)
       (pushnew symbol *allowed-packages-functions*)
       (pushnew symbol *allowed-packages-symbols*)))
@@ -151,25 +152,23 @@
                  (keyword form)
                  (symbol
 
-		  
-		  
 		  (when (or (string-equal (symbol-name *previous-form*) "defun")
 			    (string-equal (symbol-name *previous-form*) "defmacro"))
 		    (pushnew form *allowed-internal-functions*))
 		  
 		  (let ((final-form
 			 (if (fboundp form)
-			     (or (find form *allowed-isolated-functions*)
-				 (find form *allowed-packages-functions*)
-				 (find form *allowed-internal-functions*)
-				 (or
-				  (and (string-equal (symbol-name form) "defun") form)
-				  (and (string-equal (symbol-name form) "defmacro") form))
-				 
-                                 ;;having issues when defun parameters also a function
-				 ;;(error 'undefined-function :name form)
-				 form
-				 )
+			     (if 
+			      (or (find form *allowed-isolated-functions*)
+				  (find form *allowed-packages-functions*)
+				  (find form *allowed-internal-functions*)
+				  (or
+				   (and (string-equal (symbol-name form) "defun") form)
+				   (and (string-equal (symbol-name form) "defmacro") form)))
+			      form
+			      ;;NOTE: had issues when defun parameters also a function but cant
+			      ;;find an exmaple that causes the issue any more
+			      (error 'undefined-function :name form))
 			     (if (or (find form *allowed-isolated-symbols*)
 				     (find form *allowed-packages-symbols*))
 				 form
